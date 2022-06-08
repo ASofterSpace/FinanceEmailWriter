@@ -59,6 +59,7 @@ public class FinanceEmailWriter {
 			String contactMethod = content.get(0).trim();
 			String name = content.get(1);
 			name = UniversalTextDecoder.decode(name).trim();
+			name = StrUtils.removeTrailingPronounsFromName(name);
 			Integer idealPay = FinanceUtils.parseMoney(content.get(2));
 			Integer maxPay = FinanceUtils.parseMoney(content.get(3));
 			Integer agreedPay = FinanceUtils.parseMoney(content.get(5));
