@@ -213,6 +213,9 @@ public class FinanceEmailWriter {
 		statsContent.append("\r\n");
 		statsContent.append(" ");
 		statsContent.append("\r\n");
+		statsContent.append("Average amount of nights that people are at the event: ");
+		statsContent.append(StrUtils.doubleToStr((1.0 * amountOfNights) / amountOfPeople, 2));
+		statsContent.append("\r\n");
 		statsContent.append("Average ideal payment per night: ");
 		statsContent.append(FinanceUtils.formatMoney(idealPayCounter / amountOfNights) + " €");
 		statsContent.append("\r\n");
