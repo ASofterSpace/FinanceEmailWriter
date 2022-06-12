@@ -20,9 +20,22 @@ import java.util.Set;
 
 public class FinanceEmailWriter {
 
+	private static final String NAME = "(NAME)";
+	private static final String CONTACT_METHOD = "(CONTACT_METHOD)";
+	private static final String IDEAL_PAY = "(IDEAL_PAY)";
+	private static final String MAX_PAY = "(MAX_PAY)";
+	private static final String AGREED_PAY = "(AGREED_PAY)";
+	private static final String END_EXPENSE = "(END_EXPENSE)";
+	private static final String BEGIN_EXPENSE = "(BEGIN_EXPENSE)";
+	private static final String HAD_EXPENSE = "(HAD_EXPENSE)";
+	private static final String ACTUAL_TRANSACTION = "(ACTUAL_TRANSACTION)";
+	private static final String NIGHTS = "(NIGHTS)";
+	private static final String ARRIVAL_DATE = "(ARRIVAL_DATE)";
+	private static final String LEAVE_DATE = "(LEAVE_DATE)";
+
 	public final static String PROGRAM_TITLE = "FinanceEmailWriter";
-	public final static String VERSION_NUMBER = "0.0.0.1(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
-	public final static String VERSION_DATE = "6. July 2022 - 6. July 2022";
+	public final static String VERSION_NUMBER = "0.0.0.2(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
+	public final static String VERSION_DATE = "6. June 2022 - 12. June 2022";
 
 
 	public static void main(String[] args) throws Exception {
@@ -69,6 +82,10 @@ public class FinanceEmailWriter {
 			String arrivalDate = content.get(11);
 			String leaveDate = content.get(12);
 
+			if ("".equals(name.trim())) {
+				break;
+			}
+
 			String uniqueName = name;
 			uniqueName = StrUtils.replaceAll(uniqueName, "/", "");
 			uniqueName = StrUtils.replaceAll(uniqueName, "  ", " ");
@@ -86,16 +103,41 @@ public class FinanceEmailWriter {
 				"(" + nights + ": " + arrivalDate + " - " + leaveDate + ")");
 
 			String outContent = templateText;
-			outContent = StrUtils.replaceAll(outContent, "(CONTACT_METHOD)", contactMethod);
-			outContent = StrUtils.replaceAll(outContent, "(NAME)", name);
-			outContent = StrUtils.replaceAll(outContent, "(IDEAL_PAY)", FinanceUtils.formatMoney(idealPay) + " € (" + FinanceUtils.formatMoney(idealPay / nights) + " € per night)");
-			outContent = StrUtils.replaceAll(outContent, "(MAX_PAY)", FinanceUtils.formatMoney(maxPay) + " € (" + FinanceUtils.formatMoney(maxPay / nights) + " € per night)");
-			outContent = StrUtils.replaceAll(outContent, "(AGREED_PAY)", FinanceUtils.formatMoney(agreedPay) + " €");
-			outContent = StrUtils.replaceAll(outContent, "(HAD_EXPENSE)", FinanceUtils.formatMoney(hadExpense) + " €");
-			outContent = StrUtils.replaceAll(outContent, "(ACTUAL_TRANSACTION)", FinanceUtils.formatMoney(actualTransaction) + " €");
-			outContent = StrUtils.replaceAll(outContent, "(NIGHTS)", ""+nights);
-			outContent = StrUtils.replaceAll(outContent, "(ARRIVAL_DATE)", arrivalDate);
-			outContent = StrUtils.replaceAll(outContent, "(LEAVE_DATE)", leaveDate);
+			outContent = StrUtils.replaceAll(outContent, CONTACT_METHOD, contactMethod);
+			outContent = StrUtils.replaceAll(outContent, NAME, name);
+			String idealPayStr = FinanceUtils.formatMoney(idealPay) + " €";
+			if (nights != 0) {
+				idealPayStr += " (" + FinanceUtils.formatMoney(idealPay / nights) + " € per night)";
+			}
+			outContent = StrUtils.replaceAll(outContent, IDEAL_PAY, idealPayStr);
+			String maxPayStr = FinanceUtils.formatMoney(maxPay) + " €";
+			if (nights != 0) {
+				maxPayStr += " (" + FinanceUtils.formatMoney(maxPay / nights) + " € per night)";
+			}
+			outContent = StrUtils.replaceAll(outContent, MAX_PAY, maxPayStr);
+			outContent = StrUtils.replaceAll(outContent, AGREED_PAY, FinanceUtils.formatMoney(agreedPay) + " €");
+			if (hadExpense == 0) {
+				int start = outContent.indexOf(BEGIN_EXPENSE + "\r\n");
+				int end = outContent.indexOf(END_EXPENSE + "\r\n");
+				if ((start > -1) && (end > -1)) {
+					outContent = outContent.substring(0, start) + outContent.substring(end + END_EXPENSE.length() + 2);
+				}
+				start = outContent.indexOf(BEGIN_EXPENSE + "\n");
+				end = outContent.indexOf(END_EXPENSE + "\n");
+				if ((start > -1) && (end > -1)) {
+					outContent = outContent.substring(0, start) + outContent.substring(end + END_EXPENSE.length() + 1);
+				}
+			} else {
+				outContent = StrUtils.replaceAll(outContent, BEGIN_EXPENSE + "\r\n", "");
+				outContent = StrUtils.replaceAll(outContent, END_EXPENSE + "\r\n", "");
+				outContent = StrUtils.replaceAll(outContent, BEGIN_EXPENSE + "\n", "");
+				outContent = StrUtils.replaceAll(outContent, END_EXPENSE + "\n", "");
+			}
+			outContent = StrUtils.replaceAll(outContent, HAD_EXPENSE, FinanceUtils.formatMoney(hadExpense) + " €");
+			outContent = StrUtils.replaceAll(outContent, ACTUAL_TRANSACTION, FinanceUtils.formatMoney(actualTransaction) + " €");
+			outContent = StrUtils.replaceAll(outContent, NIGHTS, ""+nights);
+			outContent = StrUtils.replaceAll(outContent, ARRIVAL_DATE, arrivalDate);
+			outContent = StrUtils.replaceAll(outContent, LEAVE_DATE, leaveDate);
 
 			TextFile outFile = new TextFile(outputDir, uniqueName + ".txt");
 			outFile.saveContent(outContent);
