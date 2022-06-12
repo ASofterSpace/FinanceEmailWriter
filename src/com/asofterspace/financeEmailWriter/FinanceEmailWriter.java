@@ -222,6 +222,9 @@ public class FinanceEmailWriter {
 		statsContent.append("Average maximum payment per night: ");
 		statsContent.append(FinanceUtils.formatMoney(maxPayCounter / amountOfNights) + " €");
 		statsContent.append("\r\n");
+		statsContent.append("Average payment per night: ");
+		statsContent.append(FinanceUtils.formatMoney(avgPayCounter / amountOfNights) + " €");
+		statsContent.append("\r\n");
 		statsFile.saveContent(statsContent.toString());
 	}
 }
