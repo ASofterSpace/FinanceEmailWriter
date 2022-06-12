@@ -10,9 +10,11 @@ import com.asofterspace.toolbox.io.CsvFile;
 import com.asofterspace.toolbox.io.Directory;
 import com.asofterspace.toolbox.io.File;
 import com.asofterspace.toolbox.io.TextFile;
+import com.asofterspace.toolbox.utils.SortUtils;
 import com.asofterspace.toolbox.utils.StrUtils;
 import com.asofterspace.toolbox.Utils;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -68,6 +70,14 @@ public class FinanceEmailWriter {
 		CsvFile inputFile = new CsvFile("input/finance_sheet.csv");
 		inputFile.setEntrySeparator(';');
 		List<String> content = inputFile.getContentLineInColumns();
+
+		int amountOfPeople = 0;
+		int amountOfNights = 0;
+		int idealPayCounter = 0;
+		int maxPayCounter = 0;
+		int avgPayCounter = 0;
+		List<Integer> payList = new ArrayList<>();
+
 		while (content != null) {
 			String contactMethod = content.get(0).trim();
 			String name = content.get(1);
@@ -85,6 +95,13 @@ public class FinanceEmailWriter {
 			if ("".equals(name.trim())) {
 				break;
 			}
+
+			amountOfPeople++;
+			amountOfNights += nights;
+			idealPayCounter += idealPay;
+			maxPayCounter += maxPay;
+			avgPayCounter += agreedPay;
+			payList.add(agreedPay);
 
 			String uniqueName = name;
 			uniqueName = StrUtils.replaceAll(uniqueName, "/", "");
@@ -145,5 +162,63 @@ public class FinanceEmailWriter {
 			content = inputFile.getContentLineInColumns();
 		}
 
+		int peopleAmountDiv10 = (int) Math.round(amountOfPeople / 10.0);
+		List<Integer> sortedPayList = SortUtils.sortIntegers(payList);
+
+		TextFile statsFile = new TextFile(outputDir, "_stats.txt");
+		StringBuilder statsContent = new StringBuilder();
+		statsContent.append("Stats for nerds:");
+		statsContent.append("\r\n");
+		statsContent.append(" ");
+		statsContent.append("\r\n");
+		statsContent.append("Amount to be paid overall: ");
+		statsContent.append(FinanceUtils.formatMoney(avgPayCounter) + " €");
+		statsContent.append("\r\n");
+		statsContent.append("Amount of people: " + amountOfPeople);
+		statsContent.append("\r\n");
+		statsContent.append(" ");
+		statsContent.append("\r\n");
+		statsContent.append("Average ideal payment: ");
+		statsContent.append(FinanceUtils.formatMoney(idealPayCounter / amountOfPeople) + " €");
+		statsContent.append("\r\n");
+		statsContent.append("Average maximum payment: ");
+		statsContent.append(FinanceUtils.formatMoney(maxPayCounter / amountOfPeople) + " €");
+		statsContent.append("\r\n");
+		statsContent.append("Average payment: ");
+		statsContent.append(FinanceUtils.formatMoney(avgPayCounter / amountOfPeople) + " €");
+		statsContent.append("\r\n");
+		statsContent.append("Median payment: ");
+		if (amountOfPeople % 2 == 0) {
+			statsContent.append(FinanceUtils.formatMoney(
+				(sortedPayList.get(((int) Math.floor(amountOfPeople / 2)) - 1) +
+				sortedPayList.get((int) Math.floor(amountOfPeople / 2))) / 2
+			) + " €");
+		} else {
+			statsContent.append(FinanceUtils.formatMoney(
+				sortedPayList.get((int) Math.floor(amountOfPeople / 2))
+			) + " €");
+		}
+		statsContent.append("\r\n");
+		statsContent.append("10th percentile: ");
+		statsContent.append(FinanceUtils.formatMoney(
+			(sortedPayList.get(peopleAmountDiv10) + sortedPayList.get(peopleAmountDiv10 + 1)) / 2
+		) + " €");
+		statsContent.append(" (" + peopleAmountDiv10 + " people pay less than this amount)");
+		statsContent.append("\r\n");
+		statsContent.append("90th percentile: ");
+		statsContent.append(FinanceUtils.formatMoney(
+			(sortedPayList.get(amountOfPeople - peopleAmountDiv10) + sortedPayList.get(amountOfPeople - peopleAmountDiv10 - 1)) / 2
+		) + " €");
+		statsContent.append(" (" + peopleAmountDiv10 + " people pay more than this amount)");
+		statsContent.append("\r\n");
+		statsContent.append(" ");
+		statsContent.append("\r\n");
+		statsContent.append("Average ideal payment per night: ");
+		statsContent.append(FinanceUtils.formatMoney(idealPayCounter / amountOfNights) + " €");
+		statsContent.append("\r\n");
+		statsContent.append("Average maximum payment per night: ");
+		statsContent.append(FinanceUtils.formatMoney(maxPayCounter / amountOfNights) + " €");
+		statsContent.append("\r\n");
+		statsFile.saveContent(statsContent.toString());
 	}
 }
