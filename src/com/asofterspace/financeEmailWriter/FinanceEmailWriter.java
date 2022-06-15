@@ -36,8 +36,8 @@ public class FinanceEmailWriter {
 	private static final String LEAVE_DATE = "(LEAVE_DATE)";
 
 	public final static String PROGRAM_TITLE = "FinanceEmailWriter";
-	public final static String VERSION_NUMBER = "0.0.0.2(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
-	public final static String VERSION_DATE = "6. June 2022 - 12. June 2022";
+	public final static String VERSION_NUMBER = "0.0.0.3(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
+	public final static String VERSION_DATE = "6. June 2022 - 14. June 2022";
 
 
 	public static void main(String[] args) throws Exception {
@@ -151,7 +151,12 @@ public class FinanceEmailWriter {
 				outContent = StrUtils.replaceAll(outContent, END_EXPENSE + "\n", "");
 			}
 			outContent = StrUtils.replaceAll(outContent, HAD_EXPENSE, FinanceUtils.formatMoney(hadExpense) + " €");
-			outContent = StrUtils.replaceAll(outContent, ACTUAL_TRANSACTION, FinanceUtils.formatMoney(actualTransaction) + " €");
+			if (actualTransaction < 0) {
+				outContent = StrUtils.replaceAll(outContent, ACTUAL_TRANSACTION, FinanceUtils.formatMoney(actualTransaction) +
+					" € (as this amount is negative, I will actually send this much money to you, not the other way around ^^)");
+			} else {
+				outContent = StrUtils.replaceAll(outContent, ACTUAL_TRANSACTION, FinanceUtils.formatMoney(actualTransaction) + " €");
+			}
 			outContent = StrUtils.replaceAll(outContent, NIGHTS, ""+nights);
 			outContent = StrUtils.replaceAll(outContent, ARRIVAL_DATE, arrivalDate);
 			outContent = StrUtils.replaceAll(outContent, LEAVE_DATE, leaveDate);
