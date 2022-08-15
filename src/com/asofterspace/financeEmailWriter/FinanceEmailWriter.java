@@ -22,22 +22,25 @@ import java.util.Set;
 
 public class FinanceEmailWriter {
 
-	private static final String NAME = "(NAME)";
+	// fields in email texts
 	private static final String CONTACT_METHOD = "(CONTACT_METHOD)";
+	private static final String NAME = "(NAME)";
 	private static final String IDEAL_PAY = "(IDEAL_PAY)";
 	private static final String MAX_PAY = "(MAX_PAY)";
 	private static final String AGREED_PAY = "(AGREED_PAY)";
 	private static final String END_EXPENSE = "(END_EXPENSE)";
 	private static final String BEGIN_EXPENSE = "(BEGIN_EXPENSE)";
 	private static final String HAD_EXPENSE = "(HAD_EXPENSE)";
+	private static final String TRANSPORT_INFO = "(TRANSPORT_INFO)";
+	private static final String TRANSPORT_COSTS = "(TRANSPORT_COSTS)";
 	private static final String ACTUAL_TRANSACTION = "(ACTUAL_TRANSACTION)";
 	private static final String NIGHTS = "(NIGHTS)";
 	private static final String ARRIVAL_DATE = "(ARRIVAL_DATE)";
 	private static final String LEAVE_DATE = "(LEAVE_DATE)";
 
 	public final static String PROGRAM_TITLE = "FinanceEmailWriter";
-	public final static String VERSION_NUMBER = "0.0.0.3(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
-	public final static String VERSION_DATE = "6. June 2022 - 14. June 2022";
+	public final static String VERSION_NUMBER = "0.0.0.4(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
+	public final static String VERSION_DATE = "6. June 2022 - 15. August 2022";
 
 
 	public static void main(String[] args) throws Exception {
@@ -69,6 +72,7 @@ public class FinanceEmailWriter {
 
 		CsvFile inputFile = new CsvFile("input/finance_sheet.csv");
 		inputFile.setEntrySeparator(';');
+		List<String> headline = inputFile.getHeadLineInColumns();
 		List<String> content = inputFile.getContentLineInColumns();
 
 		int amountOfPeople = 0;
@@ -78,19 +82,36 @@ public class FinanceEmailWriter {
 		int avgPayCounter = 0;
 		List<Integer> payList = new ArrayList<>();
 
+		// fields in input CSV files
+		Integer COL_CONTACTMETH = getColNum(headline, "email");
+		Integer COL_NAME = getColNum(headline, "human");
+		Integer COL_IDEAL = getColNum(headline, "ideal budget");
+		Integer COL_MAX = getColNum(headline, "maximum budget");
+		Integer COL_AGREED = getColNum(headline, "agreed payment");
+		Integer COL_HAD_EXPENSE = getColNum(headline, "had expense");
+		Integer COL_TRANSPORT_INFO = getColNum(headline, "transport info");
+		Integer COL_TRANSPORT_COSTS = getColNum(headline, "transport costs");
+		Integer COL_ACTUAL = getColNum(headline, "actual transaction");
+		Integer COL_NIGHTS = getColNum(headline, "nights");
+		Integer COL_ARRIVAL = getColNum(headline, "arrival");
+		Integer COL_LEAVE = getColNum(headline, "departure");
+
 		while (content != null) {
-			String contactMethod = content.get(0).trim();
-			String name = content.get(1);
+			String contactMethod = getCell(content, COL_CONTACTMETH).trim();
+			String name = getCell(content, COL_NAME);
 			name = UniversalTextDecoder.decode(name).trim();
 			name = StrUtils.removeTrailingPronounsFromName(name);
-			Integer idealPay = FinanceUtils.parseMoney(content.get(2));
-			Integer maxPay = FinanceUtils.parseMoney(content.get(3));
-			Integer agreedPay = FinanceUtils.parseMoney(content.get(5));
-			Integer hadExpense = FinanceUtils.parseMoney(content.get(6));
-			Integer actualTransaction = FinanceUtils.parseMoney(content.get(7));
-			Integer nights = StrUtils.strToInt(content.get(8));
-			String arrivalDate = content.get(11);
-			String leaveDate = content.get(12);
+			Integer idealPay = FinanceUtils.parseMoney(getCell(content, COL_IDEAL));
+			Integer maxPay = FinanceUtils.parseMoney(getCell(content, COL_MAX));
+			Integer agreedPay = FinanceUtils.parseMoney(getCell(content, COL_AGREED));
+			Integer hadExpense = FinanceUtils.parseMoney(getCell(content, COL_HAD_EXPENSE));
+			String transInfo = getCell(content, COL_TRANSPORT_INFO);
+			Integer transCosts = FinanceUtils.parseMoney(getCell(content, COL_TRANSPORT_COSTS));
+			Integer actualTransaction = FinanceUtils.parseMoney(getCell(content, COL_ACTUAL));
+
+			Integer nights = StrUtils.strToInt(getCell(content, COL_NIGHTS));
+			String arrivalDate = getCell(content, COL_ARRIVAL);
+			String leaveDate = getCell(content, COL_LEAVE);
 
 			if ("".equals(name.trim())) {
 				break;
@@ -118,6 +139,13 @@ public class FinanceEmailWriter {
 				"max: " + FinanceUtils.formatMoney(maxPay) + " €, " +
 				"hadExpense: " + FinanceUtils.formatMoney(hadExpense) + " €, " +
 				"(" + nights + ": " + arrivalDate + " - " + leaveDate + ")");
+
+			int calcTransaction = agreedPay - hadExpense - transCosts;
+			if (calcTransaction != actualTransaction) {
+				System.out.println("Calculated different actual transaction for " + name + " than the input file has! " +
+					"(calculated: " + FinanceUtils.formatMoney(calcTransaction) + " €, " +
+					"actual: " + FinanceUtils.formatMoney(actualTransaction) + " €)");
+			}
 
 			String outContent = templateText;
 			outContent = StrUtils.replaceAll(outContent, CONTACT_METHOD, contactMethod);
@@ -157,6 +185,8 @@ public class FinanceEmailWriter {
 			} else {
 				outContent = StrUtils.replaceAll(outContent, ACTUAL_TRANSACTION, FinanceUtils.formatMoney(actualTransaction) + " €");
 			}
+			outContent = StrUtils.replaceAll(outContent, TRANSPORT_INFO, ""+transInfo);
+			outContent = StrUtils.replaceAll(outContent, TRANSPORT_COSTS, FinanceUtils.formatMoney(transCosts) + " €");
 			outContent = StrUtils.replaceAll(outContent, NIGHTS, ""+nights);
 			outContent = StrUtils.replaceAll(outContent, ARRIVAL_DATE, arrivalDate);
 			outContent = StrUtils.replaceAll(outContent, LEAVE_DATE, leaveDate);
@@ -231,5 +261,37 @@ public class FinanceEmailWriter {
 		statsContent.append(FinanceUtils.formatMoney(avgPayCounter / amountOfNights) + " €");
 		statsContent.append("\r\n");
 		statsFile.saveContent(statsContent.toString());
+	}
+
+	private static Integer getColNum(List<String> headline, String columnStr) {
+
+		if (headline == null) {
+			return null;
+		}
+
+		String lowNeedle = columnStr.toLowerCase().trim();
+
+		for (int i = 0; i < headline.size(); i++) {
+			String headlineStr = headline.get(i).toLowerCase().trim();
+
+			if (lowNeedle.equals(headlineStr)) {
+				return i;
+			}
+		}
+		return null;
+	}
+
+	private static String getCell(List<String> content, Integer column) {
+		if (column == null) {
+			return "";
+		}
+		if (content == null) {
+			return "";
+		}
+		String result = content.get(column);
+		if (result == null) {
+			return "";
+		}
+		return result;
 	}
 }
