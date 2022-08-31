@@ -26,7 +26,9 @@ build.sh
 
 ## Run
 
-To start up the FinanceEmailWriter project after it has been built, you copy a finance_sheet.csv and template.txt into the input folder,
+To start up the FinanceEmailWriter project after it has been built,
+you copy a finance_sheet.csv (exported Input sheet as CSV (MS-DOS) in Excel)
+and template.txt into the input folder,
 and then you can call under Windows:
 
 ```

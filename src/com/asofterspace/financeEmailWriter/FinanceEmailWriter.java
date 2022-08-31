@@ -28,8 +28,12 @@ public class FinanceEmailWriter {
 	private static final String IDEAL_PAY = "(IDEAL_PAY)";
 	private static final String MAX_PAY = "(MAX_PAY)";
 	private static final String AGREED_PAY = "(AGREED_PAY)";
-	private static final String END_EXPENSE = "(END_EXPENSE)";
 	private static final String BEGIN_EXPENSE = "(BEGIN_EXPENSE)";
+	private static final String END_EXPENSE = "(END_EXPENSE)";
+	private static final String BEGIN_TRANS = "(BEGIN_TRANSPORT_COSTS)";
+	private static final String END_TRANS = "(END_TRANSPORT_COSTS)";
+	private static final String BEGIN_EXPENSE_OR_TRANS = "(BEGIN_EXPENSE_OR_TRANS)";
+	private static final String END_EXPENSE_OR_TRANS = "(END_EXPENSE_OR_TRANS)";
 	private static final String HAD_EXPENSE = "(HAD_EXPENSE)";
 	private static final String TRANSPORT_INFO = "(TRANSPORT_INFO)";
 	private static final String TRANSPORT_COSTS = "(TRANSPORT_COSTS)";
@@ -161,6 +165,7 @@ public class FinanceEmailWriter {
 			}
 			outContent = StrUtils.replaceAll(outContent, MAX_PAY, maxPayStr);
 			outContent = StrUtils.replaceAll(outContent, AGREED_PAY, FinanceUtils.formatMoney(agreedPay) + " €");
+
 			if (hadExpense == 0) {
 				int start = outContent.indexOf(BEGIN_EXPENSE + "\r\n");
 				int end = outContent.indexOf(END_EXPENSE + "\r\n");
@@ -178,6 +183,43 @@ public class FinanceEmailWriter {
 				outContent = StrUtils.replaceAll(outContent, BEGIN_EXPENSE + "\n", "");
 				outContent = StrUtils.replaceAll(outContent, END_EXPENSE + "\n", "");
 			}
+
+			if (transCosts == 0) {
+				int start = outContent.indexOf(BEGIN_TRANS + "\r\n");
+				int end = outContent.indexOf(END_TRANS + "\r\n");
+				if ((start > -1) && (end > -1)) {
+					outContent = outContent.substring(0, start) + outContent.substring(end + END_TRANS.length() + 2);
+				}
+				start = outContent.indexOf(BEGIN_TRANS + "\n");
+				end = outContent.indexOf(END_TRANS + "\n");
+				if ((start > -1) && (end > -1)) {
+					outContent = outContent.substring(0, start) + outContent.substring(end + END_TRANS.length() + 1);
+				}
+			} else {
+				outContent = StrUtils.replaceAll(outContent, BEGIN_TRANS + "\r\n", "");
+				outContent = StrUtils.replaceAll(outContent, END_TRANS + "\r\n", "");
+				outContent = StrUtils.replaceAll(outContent, BEGIN_TRANS + "\n", "");
+				outContent = StrUtils.replaceAll(outContent, END_TRANS + "\n", "");
+			}
+
+			if ((transCosts == 0) && (hadExpense == 0)) {
+				int start = outContent.indexOf(BEGIN_EXPENSE_OR_TRANS + "\r\n");
+				int end = outContent.indexOf(END_EXPENSE_OR_TRANS + "\r\n");
+				if ((start > -1) && (end > -1)) {
+					outContent = outContent.substring(0, start) + outContent.substring(end + END_EXPENSE_OR_TRANS.length() + 2);
+				}
+				start = outContent.indexOf(BEGIN_EXPENSE_OR_TRANS + "\n");
+				end = outContent.indexOf(END_EXPENSE_OR_TRANS + "\n");
+				if ((start > -1) && (end > -1)) {
+					outContent = outContent.substring(0, start) + outContent.substring(end + END_EXPENSE_OR_TRANS.length() + 1);
+				}
+			} else {
+				outContent = StrUtils.replaceAll(outContent, BEGIN_EXPENSE_OR_TRANS + "\r\n", "");
+				outContent = StrUtils.replaceAll(outContent, END_EXPENSE_OR_TRANS + "\r\n", "");
+				outContent = StrUtils.replaceAll(outContent, BEGIN_EXPENSE_OR_TRANS + "\n", "");
+				outContent = StrUtils.replaceAll(outContent, END_EXPENSE_OR_TRANS + "\n", "");
+			}
+
 			outContent = StrUtils.replaceAll(outContent, HAD_EXPENSE, FinanceUtils.formatMoney(hadExpense) + " €");
 			if (actualTransaction < 0) {
 				outContent = StrUtils.replaceAll(outContent, ACTUAL_TRANSACTION, FinanceUtils.formatMoney(actualTransaction) +
