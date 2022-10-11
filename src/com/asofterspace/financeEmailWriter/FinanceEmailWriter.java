@@ -37,14 +37,16 @@ public class FinanceEmailWriter {
 	private static final String HAD_EXPENSE = "(HAD_EXPENSE)";
 	private static final String TRANSPORT_INFO = "(TRANSPORT_INFO)";
 	private static final String TRANSPORT_COSTS = "(TRANSPORT_COSTS)";
+	private static final String BEGIN_IF_POSITIVE = "(BEGIN_IF_POSITIVE)";
+	private static final String END_IF_POSITIVE = "(END_IF_POSITIVE)";
 	private static final String ACTUAL_TRANSACTION = "(ACTUAL_TRANSACTION)";
 	private static final String NIGHTS = "(NIGHTS)";
 	private static final String ARRIVAL_DATE = "(ARRIVAL_DATE)";
 	private static final String LEAVE_DATE = "(LEAVE_DATE)";
 
 	public final static String PROGRAM_TITLE = "FinanceEmailWriter";
-	public final static String VERSION_NUMBER = "0.0.0.4(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
-	public final static String VERSION_DATE = "6. June 2022 - 15. August 2022";
+	public final static String VERSION_NUMBER = "0.0.0.5(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
+	public final static String VERSION_DATE = "6. June 2022 - 11. October 2022";
 
 
 	public static void main(String[] args) throws Exception {
@@ -167,65 +169,35 @@ public class FinanceEmailWriter {
 			outContent = StrUtils.replaceAll(outContent, AGREED_PAY, FinanceUtils.formatMoney(agreedPay) + " €");
 
 			if (hadExpense == 0) {
-				int start = outContent.indexOf(BEGIN_EXPENSE + "\r\n");
-				int end = outContent.indexOf(END_EXPENSE + "\r\n");
-				if ((start > -1) && (end > -1)) {
-					outContent = outContent.substring(0, start) + outContent.substring(end + END_EXPENSE.length() + 2);
-				}
-				start = outContent.indexOf(BEGIN_EXPENSE + "\n");
-				end = outContent.indexOf(END_EXPENSE + "\n");
-				if ((start > -1) && (end > -1)) {
-					outContent = outContent.substring(0, start) + outContent.substring(end + END_EXPENSE.length() + 1);
-				}
+				outContent = removeFromLineToLine(outContent, BEGIN_EXPENSE, END_EXPENSE);
 			} else {
-				outContent = StrUtils.replaceAll(outContent, BEGIN_EXPENSE + "\r\n", "");
-				outContent = StrUtils.replaceAll(outContent, END_EXPENSE + "\r\n", "");
-				outContent = StrUtils.replaceAll(outContent, BEGIN_EXPENSE + "\n", "");
-				outContent = StrUtils.replaceAll(outContent, END_EXPENSE + "\n", "");
+				outContent = removeLine(outContent, BEGIN_EXPENSE);
+				outContent = removeLine(outContent, END_EXPENSE);
 			}
 
 			if (transCosts == 0) {
-				int start = outContent.indexOf(BEGIN_TRANS + "\r\n");
-				int end = outContent.indexOf(END_TRANS + "\r\n");
-				if ((start > -1) && (end > -1)) {
-					outContent = outContent.substring(0, start) + outContent.substring(end + END_TRANS.length() + 2);
-				}
-				start = outContent.indexOf(BEGIN_TRANS + "\n");
-				end = outContent.indexOf(END_TRANS + "\n");
-				if ((start > -1) && (end > -1)) {
-					outContent = outContent.substring(0, start) + outContent.substring(end + END_TRANS.length() + 1);
-				}
+				outContent = removeFromLineToLine(outContent, BEGIN_TRANS, END_TRANS);
 			} else {
-				outContent = StrUtils.replaceAll(outContent, BEGIN_TRANS + "\r\n", "");
-				outContent = StrUtils.replaceAll(outContent, END_TRANS + "\r\n", "");
-				outContent = StrUtils.replaceAll(outContent, BEGIN_TRANS + "\n", "");
-				outContent = StrUtils.replaceAll(outContent, END_TRANS + "\n", "");
+				outContent = removeLine(outContent, BEGIN_TRANS);
+				outContent = removeLine(outContent, END_TRANS);
 			}
 
 			if ((transCosts == 0) && (hadExpense == 0)) {
-				int start = outContent.indexOf(BEGIN_EXPENSE_OR_TRANS + "\r\n");
-				int end = outContent.indexOf(END_EXPENSE_OR_TRANS + "\r\n");
-				if ((start > -1) && (end > -1)) {
-					outContent = outContent.substring(0, start) + outContent.substring(end + END_EXPENSE_OR_TRANS.length() + 2);
-				}
-				start = outContent.indexOf(BEGIN_EXPENSE_OR_TRANS + "\n");
-				end = outContent.indexOf(END_EXPENSE_OR_TRANS + "\n");
-				if ((start > -1) && (end > -1)) {
-					outContent = outContent.substring(0, start) + outContent.substring(end + END_EXPENSE_OR_TRANS.length() + 1);
-				}
+				outContent = removeFromLineToLine(outContent, BEGIN_EXPENSE_OR_TRANS, END_EXPENSE_OR_TRANS);
 			} else {
-				outContent = StrUtils.replaceAll(outContent, BEGIN_EXPENSE_OR_TRANS + "\r\n", "");
-				outContent = StrUtils.replaceAll(outContent, END_EXPENSE_OR_TRANS + "\r\n", "");
-				outContent = StrUtils.replaceAll(outContent, BEGIN_EXPENSE_OR_TRANS + "\n", "");
-				outContent = StrUtils.replaceAll(outContent, END_EXPENSE_OR_TRANS + "\n", "");
+				outContent = removeLine(outContent, BEGIN_EXPENSE_OR_TRANS);
+				outContent = removeLine(outContent, END_EXPENSE_OR_TRANS);
 			}
 
 			outContent = StrUtils.replaceAll(outContent, HAD_EXPENSE, FinanceUtils.formatMoney(hadExpense) + " €");
 			if (actualTransaction < 0) {
 				outContent = StrUtils.replaceAll(outContent, ACTUAL_TRANSACTION, FinanceUtils.formatMoney(actualTransaction) +
-					" € (as this amount is negative, I will actually send this much money to you, not the other way around ^^)");
+					" € (as this amount is negative, I will actually send this much money to you, not the other way around ^^ - please let me know how you would like to get it.)");
+				outContent = removeFromLineToLine(outContent, BEGIN_IF_POSITIVE, END_IF_POSITIVE);
 			} else {
 				outContent = StrUtils.replaceAll(outContent, ACTUAL_TRANSACTION, FinanceUtils.formatMoney(actualTransaction) + " €");
+				outContent = removeLine(outContent, BEGIN_IF_POSITIVE);
+				outContent = removeLine(outContent, END_IF_POSITIVE);
 			}
 			outContent = StrUtils.replaceAll(outContent, TRANSPORT_INFO, ""+transInfo);
 			outContent = StrUtils.replaceAll(outContent, TRANSPORT_COSTS, FinanceUtils.formatMoney(transCosts) + " €");
@@ -335,5 +307,28 @@ public class FinanceEmailWriter {
 			return "";
 		}
 		return result;
+	}
+
+	private static String removeLine(String outContent, String line) {
+		outContent = StrUtils.replaceAll(outContent, line + "\r\n", "");
+		outContent = StrUtils.replaceAll(outContent, line + "\n", "");
+		return outContent;
+	}
+
+	private static String removeFromLineToLine(String outContent, String fromLine, String toLine) {
+
+		int start = outContent.indexOf(fromLine + "\r\n");
+		int end = outContent.indexOf(toLine + "\r\n");
+		if ((start > -1) && (end > -1)) {
+			outContent = outContent.substring(0, start) + outContent.substring(end + toLine.length() + 2);
+		}
+
+		start = outContent.indexOf(fromLine + "\n");
+		end = outContent.indexOf(toLine + "\n");
+		if ((start > -1) && (end > -1)) {
+			outContent = outContent.substring(0, start) + outContent.substring(end + toLine.length() + 1);
+		}
+
+		return outContent;
 	}
 }
