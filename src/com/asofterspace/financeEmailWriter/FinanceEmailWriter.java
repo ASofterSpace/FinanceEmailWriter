@@ -9,8 +9,10 @@ import com.asofterspace.toolbox.coders.UniversalTextDecoder;
 import com.asofterspace.toolbox.io.CsvFile;
 import com.asofterspace.toolbox.io.Directory;
 import com.asofterspace.toolbox.io.File;
+import com.asofterspace.toolbox.io.IoUtils;
 import com.asofterspace.toolbox.io.TextFile;
 import com.asofterspace.toolbox.utils.Record;
+import com.asofterspace.toolbox.utils.SortOrder;
 import com.asofterspace.toolbox.utils.SortUtils;
 import com.asofterspace.toolbox.utils.StrUtils;
 import com.asofterspace.toolbox.Utils;
@@ -71,6 +73,8 @@ public class FinanceEmailWriter {
 				return;
 			}
 		}
+
+		IoUtils.cleanAllWorkDirs();
 
 		Directory outputDirectory = new Directory("output");
 		outputDirectory.clear();
@@ -149,8 +153,9 @@ public class FinanceEmailWriter {
 			}
 
 			Map<String, Record> persCol = sheetInData.getColContents("A");
-			for (Map.Entry<String, Record> entry : persCol.entrySet()) {
-				String key = entry.getKey();
+			Set<String> keys = persCol.keySet();
+			List<String> sortedKeys = SortUtils.sort(keys, SortOrder.NUMERICAL);
+			for (String key : sortedKeys) {
 				String rowNum = XlsxSheet.nameToRow(key);
 				if (StrUtils.strToInt(rowNum) > 4) {
 					Record nameRec = sheetInData.getCellContent("A" + rowNum);
@@ -234,6 +239,40 @@ public class FinanceEmailWriter {
 							return;
 						}
 					}
+				}
+			}
+
+			// complain about people from IN Payments that are not on IN Data
+			Map<String, Record> payInCol = sheetInPayments.getColContents("A");
+			List<String> foundPeople = new ArrayList<>();
+			for (Map.Entry<String, Record> entry : payInCol.entrySet()) {
+				String key = entry.getKey();
+				String rowNum = XlsxSheet.nameToRow(key);
+				if (StrUtils.strToInt(rowNum) > 9) {
+					Record val = entry.getValue();
+					String name = val.asString();
+					foundPeople.add(name);
+					boolean foundThem = false;
+					for (Person person : people) {
+						if (person.getName().equals(name)) {
+							foundThem = true;
+							break;
+						}
+					}
+					if (!foundThem) {
+						System.out.println("The person " + name + " from IN Payments is not listed on IN Data!");
+						return;
+					}
+				}
+			}
+			// add people to IN Payments who are on IN Data
+			for (Person person : people) {
+				if (!foundPeople.contains(person.getName())) {
+					int rowNum = 10;
+					while (sheetInPayments.getCellContent("A" + rowNum) != null) {
+						rowNum++;
+					}
+					sheetInPayments.setCellContent("A" + rowNum, person.getName());
 				}
 			}
 
@@ -410,13 +449,14 @@ public class FinanceEmailWriter {
 				sheetInCalculation.setCellContent("A" + rollingRowNum, person.getName());
 				sheetInCalculation.setCellContent("B" + rollingRowNum, person.getContactMethod());
 				sheetInCalculation.setCellContent("C" + rollingRowNum, FinanceUtils.formatMoney(person.getIdealPay()) + " €");
-				sheetInCalculation.setCellContent("D" + rollingRowNum, FinanceUtils.formatMoney(person.getMaxPay()) + " €");
-				sheetInCalculation.setCellContent("E" + rollingRowNum, FinanceUtils.formatMoney(person.getAgreedPay()) + " €");
-				sheetInCalculation.setCellContent("F" + rollingRowNum, FinanceUtils.formatMoney(person.getHadExpense()) + " €");
-				sheetInCalculation.setCellContent("G" + rollingRowNum, FinanceUtils.formatMoney(person.getTransCosts()) + " €");
-				sheetInCalculation.setCellContent("H" + rollingRowNum, FinanceUtils.formatMoney(person.getActualTransaction()) + " €");
-				sheetInCalculation.setCellContent("I" + rollingRowNum, person.getNights());
-				sheetInCalculation.setCellContent("J" + rollingRowNum, FinanceUtils.formatMoney((int) Math.round((person.getAgreedPay() * 1.0) / person.getNights())) + " €");
+				sheetInCalculation.setCellContent("D" + rollingRowNum, FinanceUtils.formatMoney(person.getCalcIdealPay()) + " €");
+				sheetInCalculation.setCellContent("E" + rollingRowNum, FinanceUtils.formatMoney(person.getMaxPay()) + " €");
+				sheetInCalculation.setCellContent("F" + rollingRowNum, FinanceUtils.formatMoney(person.getAgreedPay()) + " €");
+				sheetInCalculation.setCellContent("G" + rollingRowNum, FinanceUtils.formatMoney(person.getHadExpense()) + " €");
+				sheetInCalculation.setCellContent("H" + rollingRowNum, FinanceUtils.formatMoney(person.getTransCosts()) + " €");
+				sheetInCalculation.setCellContent("I" + rollingRowNum, FinanceUtils.formatMoney(person.getActualTransaction()) + " €");
+				sheetInCalculation.setCellContent("J" + rollingRowNum, person.getNights());
+				sheetInCalculation.setCellContent("K" + rollingRowNum, FinanceUtils.formatMoney((int) Math.round((person.getAgreedPay() * 1.0) / person.getNights())) + " €");
 				rollingRowNum++;
 			}
 		}
