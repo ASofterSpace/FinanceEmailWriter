@@ -17,6 +17,7 @@ mkdir coders
 mkdir configuration
 mkdir io
 mkdir utils
+mkdir xlsx
 
 cd ../../../..
 
@@ -26,6 +27,7 @@ cp ../Toolbox-Java/src/com/asofterspace/toolbox/coders/*.* src/com/asofterspace/
 cp ../Toolbox-Java/src/com/asofterspace/toolbox/configuration/*.* src/com/asofterspace/toolbox/configuration
 cp ../Toolbox-Java/src/com/asofterspace/toolbox/io/*.* src/com/asofterspace/toolbox/io
 cp ../Toolbox-Java/src/com/asofterspace/toolbox/utils/*.* src/com/asofterspace/toolbox/utils
+cp ../Toolbox-Java/src/com/asofterspace/toolbox/xlsx/*.* src/com/asofterspace/toolbox/xlsx
 
 rm -rf bin
 

@@ -36,6 +36,7 @@ config/
 # input / output files
 input/
 output/
+workdir/
 *.pdf
 *.ppm
 *.png
