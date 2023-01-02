@@ -52,7 +52,7 @@ public class FinanceEmailWriter {
 
 	public final static String PROGRAM_TITLE = "FinanceEmailWriter";
 	public final static String VERSION_NUMBER = "0.0.0.6(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
-	public final static String VERSION_DATE = "6. June 2022 - 31. December 2022";
+	public final static String VERSION_DATE = "6. June 2022 - 2. January 2023";
 
 
 	public static void main(String[] args) throws Exception {
@@ -81,6 +81,7 @@ public class FinanceEmailWriter {
 
 		TextFile templateFile = new TextFile("input/template.txt");
 		String templateText = templateFile.getContent();
+		templateFile.copyToDisk(new File(outputDirectory, "_template.txt"));
 
 		int amountOfPeople = 0;
 		int amountOfNights = 0;
