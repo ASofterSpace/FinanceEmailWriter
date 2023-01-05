@@ -45,14 +45,16 @@ public class FinanceEmailWriter {
 	private static final String TRANSPORT_COSTS = "(TRANSPORT_COSTS)";
 	private static final String BEGIN_IF_POSITIVE = "(BEGIN_IF_POSITIVE)";
 	private static final String END_IF_POSITIVE = "(END_IF_POSITIVE)";
+	private static final String BEGIN_IF_NEGATIVE = "(BEGIN_IF_NEGATIVE)";
+	private static final String END_IF_NEGATIVE = "(END_IF_NEGATIVE)";
 	private static final String ACTUAL_TRANSACTION = "(ACTUAL_TRANSACTION)";
 	private static final String NIGHTS = "(NIGHTS)";
 	private static final String ARRIVAL_DATE = "(ARRIVAL_DATE)";
 	private static final String LEAVE_DATE = "(LEAVE_DATE)";
 
 	public final static String PROGRAM_TITLE = "FinanceEmailWriter";
-	public final static String VERSION_NUMBER = "0.0.0.6(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
-	public final static String VERSION_DATE = "6. June 2022 - 2. January 2023";
+	public final static String VERSION_NUMBER = "0.0.0.7(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
+	public final static String VERSION_DATE = "6. June 2022 - 4. January 2023";
 
 
 	public static void main(String[] args) throws Exception {
@@ -169,14 +171,12 @@ public class FinanceEmailWriter {
 						Person person = new Person(name);
 						people.add(person);
 
-						person.setContactMethod(sheetInData.getCellContent("B" + rowNum).asString());
-						person.setIdealPay((int) Math.round(sheetInData.getCellContent("C" + rowNum).asDouble() * 100));
-						person.setMaxPay((int) Math.round(sheetInData.getCellContent("D" + rowNum).asDouble() * 100));
-						person.setTransInfo(sheetInData.getCellContent("E" + rowNum).asString());
-						person.setTransCosts((int) Math.round(sheetInData.getCellContent("F" + rowNum).asDouble() * 100));
-						person.setArrivalDate(sheetInData.getCellContent("G" + rowNum).asString());
-						person.setLeaveDate(sheetInData.getCellContent("H" + rowNum).asString());
-						person.setNights(sheetInData.getCellContent("I" + rowNum).asInteger());
+						person.setContactMethod(sheetInData.getCellContentString("B" + rowNum));
+						person.setIdealPay((int) Math.round(sheetInData.getCellContentDoubleNonNull("C" + rowNum) * 100));
+						person.setMaxPay((int) Math.round(sheetInData.getCellContentDoubleNonNull("D" + rowNum) * 100));
+						person.setArrivalDate(sheetInData.getCellContentString("E" + rowNum));
+						person.setLeaveDate(sheetInData.getCellContentString("F" + rowNum));
+						person.setNights(sheetInData.getCellContentInteger("G" + rowNum));
 						person.setHadExpense(0);
 					}
 				}
@@ -191,15 +191,9 @@ public class FinanceEmailWriter {
 					if (amountRec != null) {
 						Double amount = amountRec.asDouble();
 						Record personRec = sheetOutPayments.getCellContent("B" + rowNum);
-						String personStr = personRec.asString();
-						Record catRec = sheetOutPayments.getCellContent("E" + rowNum);
-						String catStr = null;
-						if (catRec != null) {
-							catStr = catRec.asString();
-						}
-						if (catStr == null) {
-							catStr = "other";
-						}
+						String personStr = Person.sanitizeName(personRec.asString());
+						String expenseText = sheetOutPayments.getCellContentStringNonNull("D" + rowNum);
+						String catStr = sheetOutPayments.getCellContentStringNonNull("E" + rowNum);
 						if ("".equals(catStr)) {
 							catStr = "o";
 						}
@@ -227,7 +221,11 @@ public class FinanceEmailWriter {
 						boolean foundPerson = false;
 						for (Person person : people) {
 							if (personStr.equals(person.getName())) {
-								person.setHadExpense(person.getHadExpense() + amountInt);
+								if ("t".equals(catStr)) {
+									person.addTransport(amountInt, expenseText);
+								} else {
+									person.addExpense(amountInt, expenseText);
+								}
 								foundPerson = true;
 								break;
 							}
@@ -252,6 +250,7 @@ public class FinanceEmailWriter {
 				if (StrUtils.strToInt(rowNum) > 9) {
 					Record val = entry.getValue();
 					String name = val.asString();
+					name = Person.sanitizeName(name);
 					foundPeople.add(name);
 					boolean foundThem = false;
 					for (Person person : people) {
@@ -340,30 +339,68 @@ public class FinanceEmailWriter {
 			maxPayCounter += person.getMaxPay();
 		}
 
-		// calculate first round...
-		double ratio1 = ((costCounterSum - maxPayCounter) * 1.0) / (idealPayCounter - maxPayCounter);
-		ratio1 = ratio1 / 2;
+		// calculate new ideal values by calculating the average ratio of ideal to max,
+		// and then calculating new ideal values for each person based on that ratio and their max value,
+		// but with more weight for the ideal value they originally gave
+		// (so max values remain, but people who put very low ideals will get them slightly raised, and people who
+		// put very high ideals will get them slightly lowered, to have overall a fairer distribution in which
+		// everyone benefits from the community more equally than they otherwise would)
+		double overallIdealToMaxRatio = (idealPayCounter * 1.0) / maxPayCounter;
 
-		// adjust all ideal values based on first round, so that if payments are close to max, calc ideals are close
-		// to ideal, and if payments are close to ideal, calc ideals are close to zero...
-		int calcIdealPayCounter = 0;
 		for (Person person : people) {
-			person.setCalcIdealPay((int) Math.round(person.getIdealPay() * (1 - ratio1)));
-			calcIdealPayCounter += person.getCalcIdealPay();
+			double fullyCalculatedPay = overallIdealToMaxRatio * person.getMaxPay();
+			double avgCalcAndOrigIdealPay = ((2 * person.getIdealPay()) + fullyCalculatedPay) / 3;
+			person.setCalcIdealPay((int) Math.round(avgCalcAndOrigIdealPay));
 		}
 
-		// calculate second round...
-		double ratio2 = ((costCounterSum - maxPayCounter) * 1.0) / (calcIdealPayCounter - maxPayCounter);
-		for (Person person : people) {
-			person.setAgreedPay((int) Math.round((person.getCalcIdealPay() * ratio2) + (person.getMaxPay() * (1 - ratio2))));
+		boolean repeatCalculation = true;
+		int calcIdealPayCounter = 0;
+		double interpolationFactor = 0;
+		int roundCounter = 0;
+
+		// calculate actual interpolation, based on calculated ideal and original max value...
+		while (repeatCalculation) {
+
+			roundCounter++;
+
+			System.out.println("Running interpolation round #" + roundCounter + "...");
+
+			repeatCalculation = false;
+
+			calcIdealPayCounter = 0;
+			for (Person person : people) {
+				calcIdealPayCounter += person.getCalcIdealPay();
+			}
+
+			interpolationFactor = ((costCounterSum - maxPayCounter) * 1.0) / (calcIdealPayCounter - maxPayCounter);
+			for (Person person : people) {
+				person.setAgreedPay((int) Math.round((person.getCalcIdealPay() * interpolationFactor) +
+					(person.getMaxPay() * (1 - interpolationFactor))));
+			}
+
+			// ... but do this again and again, as long as the outcoming values are below 10% above the ideal pay
+			// (unless they are for everyone, in which case this will stop running once all the calc ideals
+			// are at the orig ideals)
+			for (Person person : people) {
+				int tenPercAboveIdeal = person.getIdealPay() + ((person.getMaxPay() - person.getIdealPay()) / 10);
+				if (person.getAgreedPay() < tenPercAboveIdeal) {
+					if (person.getCalcIdealPay() < person.getIdealPay()) {
+						person.setCalcIdealPay(Math.min(
+							((9 * person.getCalcIdealPay()) + person.getMaxPay()) / 10,
+							person.getIdealPay()
+						));
+						repeatCalculation = true;
+					}
+				}
+			}
 		}
 
 		System.out.println("Costs: " + FinanceUtils.formatMoney(costCounterSum) + " €");
-		System.out.println("Ideal Sum: " + FinanceUtils.formatMoney(idealPayCounter) + " €");
-		System.out.println("Max Sum: " + FinanceUtils.formatMoney(maxPayCounter) + " €");
-		System.out.println("First Ratio: " + ratio1);
+		System.out.println("Orig Ideal Sum: " + FinanceUtils.formatMoney(idealPayCounter) + " €");
+		System.out.println("Orig Max Sum: " + FinanceUtils.formatMoney(maxPayCounter) + " €");
+		System.out.println("Overall Orig Ideal to Orig Max Ratio: " + overallIdealToMaxRatio);
 		System.out.println("Calculated Ideal Sum: " + FinanceUtils.formatMoney(calcIdealPayCounter) + " €");
-		System.out.println("Second Ratio: " + ratio2);
+		System.out.println("Interpolation Factor between Calc Ideal and Orig Max: " + interpolationFactor);
 
 		List<Integer> payList = new ArrayList<>();
 
@@ -386,7 +423,7 @@ public class FinanceEmailWriter {
 
 			String outContent = templateText;
 			outContent = StrUtils.replaceAll(outContent, CONTACT_METHOD, person.getContactMethod());
-			outContent = StrUtils.replaceAll(outContent, NAME, person.getName());
+			outContent = StrUtils.replaceAll(outContent, NAME, person.getDisplayName());
 			String idealPayStr = FinanceUtils.formatMoney(person.getIdealPay()) + " €";
 			if (person.getNights() != 0) {
 				idealPayStr += " (" + FinanceUtils.formatMoney(person.getIdealPay() / person.getNights()) + " € per night)";
@@ -420,18 +457,20 @@ public class FinanceEmailWriter {
 				outContent = removeLine(outContent, END_EXPENSE_OR_TRANS);
 			}
 
-			outContent = StrUtils.replaceAll(outContent, HAD_EXPENSE, FinanceUtils.formatMoney(person.getHadExpense()) + " €");
+			outContent = StrUtils.replaceAll(outContent, HAD_EXPENSE, person.getExpenseText());
+			// no longer necessary, as this is just part of the transport costs now
+			// outContent = StrUtils.replaceAll(outContent, TRANSPORT_INFO, ""+person.getTransInfo());
+			outContent = StrUtils.replaceAll(outContent, TRANSPORT_COSTS,person.getTransportText());
+			outContent = StrUtils.replaceAll(outContent, ACTUAL_TRANSACTION, FinanceUtils.formatMoney(person.getActualTransaction()) + " €");
 			if (person.getActualTransaction() < 0) {
-				outContent = StrUtils.replaceAll(outContent, ACTUAL_TRANSACTION, FinanceUtils.formatMoney(person.getActualTransaction()) +
-					" € (as this amount is negative, I will actually send this much money to you, not the other way around ^^ - please let me know how you would like to get it.)");
 				outContent = removeFromLineToLine(outContent, BEGIN_IF_POSITIVE, END_IF_POSITIVE);
+				outContent = removeLine(outContent, BEGIN_IF_NEGATIVE);
+				outContent = removeLine(outContent, END_IF_NEGATIVE);
 			} else {
-				outContent = StrUtils.replaceAll(outContent, ACTUAL_TRANSACTION, FinanceUtils.formatMoney(person.getActualTransaction()) + " €");
 				outContent = removeLine(outContent, BEGIN_IF_POSITIVE);
 				outContent = removeLine(outContent, END_IF_POSITIVE);
+				outContent = removeFromLineToLine(outContent, BEGIN_IF_NEGATIVE, END_IF_NEGATIVE);
 			}
-			outContent = StrUtils.replaceAll(outContent, TRANSPORT_INFO, ""+person.getTransInfo());
-			outContent = StrUtils.replaceAll(outContent, TRANSPORT_COSTS, FinanceUtils.formatMoney(person.getTransCosts()) + " €");
 			outContent = StrUtils.replaceAll(outContent, NIGHTS, ""+person.getNights());
 			outContent = StrUtils.replaceAll(outContent, ARRIVAL_DATE, person.getArrivalDate());
 			outContent = StrUtils.replaceAll(outContent, LEAVE_DATE, person.getLeaveDate());
@@ -517,7 +556,7 @@ public class FinanceEmailWriter {
 		statsContent.append("\r\n");
 		statsContent.append("10th percentile: ");
 		statsContent.append(FinanceUtils.formatMoney(
-			(sortedPayList.get(peopleAmountDiv10) + sortedPayList.get(peopleAmountDiv10 + 1)) / 2
+			(sortedPayList.get(peopleAmountDiv10 - 1) + sortedPayList.get(peopleAmountDiv10)) / 2
 		) + " €");
 		statsContent.append(" (" + peopleAmountDiv10 + " " + (peopleAmountDiv10 == 1 ? "person pays" : "people pay") + " less than this amount)");
 		statsContent.append("\r\n");
@@ -532,15 +571,17 @@ public class FinanceEmailWriter {
 		statsContent.append("Average amount of nights that people are at the event: ");
 		statsContent.append(StrUtils.doubleToStr((1.0 * amountOfNights) / amountOfPeople, 2));
 		statsContent.append("\r\n");
-		statsContent.append("Average ideal payment per night: ");
-		statsContent.append(FinanceUtils.formatMoney(idealPayCounter / amountOfNights) + " €");
-		statsContent.append("\r\n");
-		statsContent.append("Average maximum payment per night: ");
-		statsContent.append(FinanceUtils.formatMoney(maxPayCounter / amountOfNights) + " €");
-		statsContent.append("\r\n");
-		statsContent.append("Average payment per night: ");
-		statsContent.append(FinanceUtils.formatMoney(costCounterSum / amountOfNights) + " €");
-		statsContent.append("\r\n");
+		if (amountOfNights > 0) {
+			statsContent.append("Average ideal payment per night: ");
+			statsContent.append(FinanceUtils.formatMoney(idealPayCounter / amountOfNights) + " €");
+			statsContent.append("\r\n");
+			statsContent.append("Average maximum payment per night: ");
+			statsContent.append(FinanceUtils.formatMoney(maxPayCounter / amountOfNights) + " €");
+			statsContent.append("\r\n");
+			statsContent.append("Average payment per night: ");
+			statsContent.append(FinanceUtils.formatMoney(costCounterSum / amountOfNights) + " €");
+			statsContent.append("\r\n");
+		}
 		statsFile.saveContent(statsContent.toString());
 
 		if (usingXlsx) {

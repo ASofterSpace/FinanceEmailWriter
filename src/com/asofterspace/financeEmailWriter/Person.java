@@ -4,11 +4,17 @@
  */
 package com.asofterspace.financeEmailWriter;
 
+import com.asofterspace.toolbox.accounting.FinanceUtils;
+import com.asofterspace.toolbox.utils.Pair;
 import com.asofterspace.toolbox.utils.StrUtils;
+
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class Person {
 
+	private String displayName;
 	private String name;
 	private String contactMethod;
 	private Integer idealPay;
@@ -22,16 +28,34 @@ public class Person {
 	private String arrivalDate;
 	private String leaveDate;
 
+	private List<Pair<Integer, String>> expenses;
+	private List<Pair<Integer, String>> transports;
+
 
 	public Person(String name) {
-		this.name = StrUtils.removeTrailingPronounsFromName(name);
-		this.name = StrUtils.replaceAll(this.name, "/", "");
-		this.name = StrUtils.replaceAll(this.name, "  ", " ");
-		this.name = this.name.trim();
+		this.displayName = name;
+		this.name = sanitizeName(name);
+		this.expenses = new ArrayList<>();
+		this.hadExpense = 0;
+		this.transports = new ArrayList<>();
+		this.transCosts = 0;
+	}
+
+	public static String sanitizeName(String name) {
+		name = StrUtils.removeTrailingPronounsFromName(name);
+		name = StrUtils.replaceAll(name, "/", "");
+		name = StrUtils.replaceAll(name, ".", "");
+		name = StrUtils.replaceAll(name, "  ", " ");
+		name = name.trim();
+		return name;
 	}
 
 	public String getName() {
 		return name;
+	}
+
+	public String getDisplayName() {
+		return displayName;
 	}
 
 	public String getContactMethod() {
@@ -82,6 +106,33 @@ public class Person {
 		this.hadExpense = hadExpense;
 	}
 
+	public void addExpense(int costs, String text) {
+		expenses.add(new Pair<>(costs, text));
+		this.hadExpense += costs;
+	}
+
+	public String getExpenseText() {
+		String result = "";
+
+		if (expenses.size() < 1) {
+			return FinanceUtils.formatMoney(getHadExpense()) + " €";
+		}
+
+		String sep = "";
+
+		for (Pair<Integer, String> cost : expenses) {
+			result += sep + FinanceUtils.formatMoney(cost.getKey()) + " € for " + cost.getValue();
+			sep = "\r\n";
+		}
+
+		// only show a total if there is more than one row
+		if (expenses.size() > 1) {
+			result += sep + "So in total: " + FinanceUtils.formatMoney(getHadExpense()) + " € in expenses.";
+		}
+
+		return result;
+	}
+
 	public String getTransInfo() {
 		return transInfo;
 	}
@@ -96,6 +147,33 @@ public class Person {
 
 	public void setTransCosts(Integer transCosts) {
 		this.transCosts = transCosts;
+	}
+
+	public void addTransport(int costs, String text) {
+		transports.add(new Pair<>(costs, text));
+		this.transCosts += costs;
+	}
+
+	public String getTransportText() {
+		String result = "";
+
+		if (transports.size() < 1) {
+			return FinanceUtils.formatMoney(getTransCosts()) + " € for " + getTransInfo();
+		}
+
+		String sep = "";
+
+		for (Pair<Integer, String> cost : transports) {
+			result += sep + FinanceUtils.formatMoney(cost.getKey()) + " € for " + cost.getValue();
+			sep = "\r\n";
+		}
+
+		// only show a total if there is more than one row
+		if (transports.size() > 1) {
+			result += sep + "So in total: " + FinanceUtils.formatMoney(getTransCosts()) + " € in transport costs.";
+		}
+
+		return result;
 	}
 
 	public Integer getNights() {
