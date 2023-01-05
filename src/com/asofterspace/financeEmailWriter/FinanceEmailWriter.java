@@ -11,6 +11,7 @@ import com.asofterspace.toolbox.io.Directory;
 import com.asofterspace.toolbox.io.File;
 import com.asofterspace.toolbox.io.IoUtils;
 import com.asofterspace.toolbox.io.TextFile;
+import com.asofterspace.toolbox.utils.MathUtils;
 import com.asofterspace.toolbox.utils.Record;
 import com.asofterspace.toolbox.utils.SortOrder;
 import com.asofterspace.toolbox.utils.SortUtils;
@@ -348,6 +349,14 @@ public class FinanceEmailWriter {
 		double overallIdealToMaxRatio = (idealPayCounter * 1.0) / maxPayCounter;
 
 		for (Person person : people) {
+			// special case: if orig ideal == orig max, then the person really wants to pay EXACTLY
+			// that amount, so let their calc ideal also be equal to that value so that they really
+			// to get this amount, no matter what!
+			if (MathUtils.equals(person.getIdealPay(), person.getMaxPay())) {
+				person.setCalcIdealPay(person.getIdealPay());
+				continue;
+			}
+
 			double fullyCalculatedPay = overallIdealToMaxRatio * person.getMaxPay();
 			double avgCalcAndOrigIdealPay = ((2 * person.getIdealPay()) + fullyCalculatedPay) / 3;
 			person.setCalcIdealPay((int) Math.round(avgCalcAndOrigIdealPay));
@@ -385,8 +394,13 @@ public class FinanceEmailWriter {
 				int tenPercAboveIdeal = person.getIdealPay() + ((person.getMaxPay() - person.getIdealPay()) / 10);
 				if (person.getAgreedPay() < tenPercAboveIdeal) {
 					if (person.getCalcIdealPay() < person.getIdealPay()) {
+						int upStepSize = (person.getMaxPay() - person.getCalcIdealPay()) / 20;
+						// ensure we don't just loop forever
+						if (upStepSize < 1) {
+							upStepSize = 1;
+						}
 						person.setCalcIdealPay(Math.min(
-							((9 * person.getCalcIdealPay()) + person.getMaxPay()) / 10,
+							person.getCalcIdealPay() + upStepSize,
 							person.getIdealPay()
 						));
 						repeatCalculation = true;
