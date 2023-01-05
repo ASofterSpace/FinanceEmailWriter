@@ -502,16 +502,30 @@ public class FinanceEmailWriter {
 			if (usingXlsx) {
 				sheetInCalculation.setCellContent("A" + rollingRowNum, person.getName());
 				sheetInCalculation.setCellContent("B" + rollingRowNum, person.getContactMethod());
-				sheetInCalculation.setCellContent("C" + rollingRowNum, FinanceUtils.formatMoney(person.getIdealPay()) + " €");
-				sheetInCalculation.setCellContent("D" + rollingRowNum, FinanceUtils.formatMoney(person.getCalcIdealPay()) + " €");
-				sheetInCalculation.setCellContent("E" + rollingRowNum, FinanceUtils.formatMoney(person.getMaxPay()) + " €");
-				sheetInCalculation.setCellContent("F" + rollingRowNum, FinanceUtils.formatMoney(person.getAgreedPay()) + " €");
-				sheetInCalculation.setCellContent("G" + rollingRowNum, FinanceUtils.formatMoney(person.getHadExpense()) + " €");
-				sheetInCalculation.setCellContent("H" + rollingRowNum, FinanceUtils.formatMoney(person.getTransCosts()) + " €");
-				sheetInCalculation.setCellContent("I" + rollingRowNum, FinanceUtils.formatMoney(person.getActualTransaction()) + " €");
+				sheetInCalculation.setCellContent("C" + rollingRowNum, person.getIdealPay() / 100.0);
+				sheetInCalculation.setCellContent("D" + rollingRowNum, person.getCalcIdealPay() / 100.0);
+				sheetInCalculation.setCellContent("E" + rollingRowNum, person.getMaxPay() / 100.0);
+				sheetInCalculation.setCellContent("F" + rollingRowNum, person.getAgreedPay() / 100.0);
+				sheetInCalculation.setCellContent("G" + rollingRowNum, person.getHadExpense() / 100.0);
+				sheetInCalculation.setCellContent("H" + rollingRowNum, person.getTransCosts() / 100.0);
+				sheetInCalculation.setCellContent("I" + rollingRowNum, person.getActualTransaction() / 100.0);
 				sheetInCalculation.setCellContent("J" + rollingRowNum, person.getNights());
-				sheetInCalculation.setCellContent("K" + rollingRowNum, FinanceUtils.formatMoney((int) Math.round((person.getAgreedPay() * 1.0) / person.getNights())) + " €");
+				sheetInCalculation.setCellContent("K" + rollingRowNum, person.getAgreedPay() / (person.getNights() * 100.0));
 				rollingRowNum++;
+
+				Map<String, Record> payInCol = sheetInPayments.getColContents("A");
+				for (Map.Entry<String, Record> entry : payInCol.entrySet()) {
+					String key = entry.getKey();
+					String rowNum = XlsxSheet.nameToRow(key);
+					if (StrUtils.strToInt(rowNum) > 9) {
+						Record val = entry.getValue();
+						String name = val.asString();
+						name = Person.sanitizeName(name);
+						if (person.getName().equals(name)) {
+							sheetInPayments.setCellContent("E" + rowNum, person.getActualTransaction() / 100.0);
+						}
+					}
+				}
 			}
 		}
 
