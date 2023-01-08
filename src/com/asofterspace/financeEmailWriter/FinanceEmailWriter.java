@@ -21,6 +21,7 @@ import com.asofterspace.toolbox.xlsx.XlsxFile;
 import com.asofterspace.toolbox.xlsx.XlsxSheet;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -52,10 +53,11 @@ public class FinanceEmailWriter {
 	private static final String NIGHTS = "(NIGHTS)";
 	private static final String ARRIVAL_DATE = "(ARRIVAL_DATE)";
 	private static final String LEAVE_DATE = "(LEAVE_DATE)";
+	private static final int HEAD_LINE_AMOUNT_IN_PAYMENTS = 9;
 
 	public final static String PROGRAM_TITLE = "FinanceEmailWriter";
-	public final static String VERSION_NUMBER = "0.0.0.7(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
-	public final static String VERSION_DATE = "6. June 2022 - 4. January 2023";
+	public final static String VERSION_NUMBER = "0.0.0.8(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
+	public final static String VERSION_DATE = "6. June 2022 - 8. January 2023";
 
 
 	public static void main(String[] args) throws Exception {
@@ -425,6 +427,63 @@ public class FinanceEmailWriter {
 		Set<String> encounteredNames = new HashSet<>();
 		int rollingRowNum = 5;
 
+		if (usingXlsx) {
+			// sort people on IN Payments alphabetically - but only if the rest of the rows is empty!
+			// soooo check that...
+			boolean isEmpty = true;
+			Map<String, List<String>> rows = new HashMap<>();
+
+			Map<String, Record> payInCol = sheetInPayments.getColContents("A");
+			for (Map.Entry<String, Record> entry : payInCol.entrySet()) {
+				String key = entry.getKey();
+				String rowNum = XlsxSheet.nameToRow(key);
+				if (StrUtils.strToInt(rowNum) > HEAD_LINE_AMOUNT_IN_PAYMENTS) {
+					Record val = entry.getValue();
+					String name = val.asString();
+					List<String> cellList = new ArrayList<>();
+					String bContentStr = sheetInPayments.getCellContentString("B" + rowNum);
+					cellList.add(bContentStr);
+					if (!((bContentStr == null) || "".equals(bContentStr))) {
+						isEmpty = false;
+					}
+					String cContentStr = sheetInPayments.getCellContentString("C" + rowNum);
+					cellList.add(cContentStr);
+					if (!((cContentStr == null) || "".equals(cContentStr))) {
+						isEmpty = false;
+					}
+					cellList.add(sheetInPayments.getCellContentString("D" + rowNum));
+					cellList.add(sheetInPayments.getCellContentString("F" + rowNum));
+					cellList.add(sheetInPayments.getCellContentString("G" + rowNum));
+					rows.put(name, cellList);
+				}
+			}
+
+			if (isEmpty) {
+				Set<String> names = rows.keySet();
+				List<String> sortedNames = SortUtils.sortAlphabetically(names);
+				int cur = HEAD_LINE_AMOUNT_IN_PAYMENTS + 1;
+				for (String sortedName : sortedNames) {
+					for (Map.Entry<String, List<String>> row : rows.entrySet()) {
+						if (sortedName.equals(row.getKey())) {
+							List<String> cellList = row.getValue();
+							sheetInPayments.setCellContent("A" + cur, row.getKey());
+							sheetInPayments.setCellContent("B" + cur, cellList.get(0));
+							sheetInPayments.setCellContent("C" + cur, cellList.get(1));
+							sheetInPayments.setCellContent("D" + cur, cellList.get(2));
+							sheetInPayments.setCellContent("F" + cur, cellList.get(3));
+							sheetInPayments.setCellContent("G" + cur, cellList.get(4));
+							cur++;
+							continue;
+						}
+					}
+				}
+				System.out.println("Sorting people alphabetically on IN Payments sheet...");
+			} else {
+				System.out.println("Not sorting people alphabetically on IN Payments sheet, " +
+					"as there is already some info there!");
+			}
+		}
+
 		for (Person person : people) {
 
 			System.out.println(person.getName() + " (" + person.getContactMethod() + "), " +
@@ -513,11 +572,12 @@ public class FinanceEmailWriter {
 				sheetInCalculation.setCellContent("K" + rollingRowNum, person.getAgreedPay() / (person.getNights() * 100.0));
 				rollingRowNum++;
 
+				// set actual transaction on IN Payments
 				Map<String, Record> payInCol = sheetInPayments.getColContents("A");
 				for (Map.Entry<String, Record> entry : payInCol.entrySet()) {
 					String key = entry.getKey();
 					String rowNum = XlsxSheet.nameToRow(key);
-					if (StrUtils.strToInt(rowNum) > 9) {
+					if (StrUtils.strToInt(rowNum) > HEAD_LINE_AMOUNT_IN_PAYMENTS) {
 						Record val = entry.getValue();
 						String name = val.asString();
 						name = Person.sanitizeName(name);
@@ -526,6 +586,7 @@ public class FinanceEmailWriter {
 						}
 					}
 				}
+
 			}
 		}
 
