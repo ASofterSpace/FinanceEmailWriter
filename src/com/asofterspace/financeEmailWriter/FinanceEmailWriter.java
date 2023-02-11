@@ -56,8 +56,8 @@ public class FinanceEmailWriter {
 	private static final int HEAD_LINE_AMOUNT_IN_PAYMENTS = 9;
 
 	public final static String PROGRAM_TITLE = "FinanceEmailWriter";
-	public final static String VERSION_NUMBER = "0.0.0.8(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
-	public final static String VERSION_DATE = "6. June 2022 - 8. January 2023";
+	public final static String VERSION_NUMBER = "0.0.0.9(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
+	public final static String VERSION_DATE = "6. June 2022 - 11. Februrary 2023";
 
 
 	public static void main(String[] args) throws Exception {
@@ -610,11 +610,11 @@ public class FinanceEmailWriter {
 			statsContent.append(FinanceUtils.formatMoney(costCounterFood) + " €");
 			statsContent.append("\r\n");
 			if (costCounterTransport > 0) {
-				statsContent.append("Includes transport costs: ");
+				statsContent.append("Includes everyone's transport costs: ");
 				statsContent.append(FinanceUtils.formatMoney(costCounterTransport) + " €");
 				statsContent.append("\r\n");
 			}
-			statsContent.append("Includes other costs: ");
+			statsContent.append("Includes other costs, such as energy, cleaning, etc.: ");
 			statsContent.append(FinanceUtils.formatMoney(costCounterOther) + " €");
 			statsContent.append("\r\n");
 		}
