@@ -56,8 +56,8 @@ public class FinanceEmailWriter {
 	private static final int HEAD_LINE_AMOUNT_IN_PAYMENTS = 9;
 
 	public final static String PROGRAM_TITLE = "FinanceEmailWriter";
-	public final static String VERSION_NUMBER = "0.0.0.9(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
-	public final static String VERSION_DATE = "6. June 2022 - 11. Februrary 2023";
+	public final static String VERSION_NUMBER = "0.0.1.0(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
+	public final static String VERSION_DATE = "6. June 2022 - 14. Februrary 2023";
 
 
 	public static void main(String[] args) throws Exception {
@@ -583,6 +583,7 @@ public class FinanceEmailWriter {
 						name = Person.sanitizeName(name);
 						if (person.getName().equals(name)) {
 							sheetInPayments.setCellContent("E" + rowNum, person.getActualTransaction() / 100.0);
+							sheetInPayments.setCellContent("H" + rowNum, person.getContactMethod());
 						}
 					}
 				}
