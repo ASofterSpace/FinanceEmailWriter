@@ -53,11 +53,15 @@ public class FinanceEmailWriter {
 	private static final String NIGHTS = "(NIGHTS)";
 	private static final String ARRIVAL_DATE = "(ARRIVAL_DATE)";
 	private static final String LEAVE_DATE = "(LEAVE_DATE)";
+	private static final String BEGIN_IF_NIGHTS_ZERO = "(BEGIN_IF_NIGHTS_ZERO)";
+	private static final String END_IF_NIGHTS_ZERO = "(END_IF_NIGHTS_ZERO)";
+	private static final String BEGIN_IF_NIGHTS_NON_ZERO = "(BEGIN_IF_NIGHTS_NON_ZERO)";
+	private static final String END_IF_NIGHTS_NON_ZERO = "(END_IF_NIGHTS_NON_ZERO)";
 	private static final int HEAD_LINE_AMOUNT_IN_PAYMENTS = 9;
 
 	public final static String PROGRAM_TITLE = "FinanceEmailWriter";
-	public final static String VERSION_NUMBER = "0.0.1.0(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
-	public final static String VERSION_DATE = "6. June 2022 - 14. Februrary 2023";
+	public final static String VERSION_NUMBER = "0.0.1.1(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
+	public final static String VERSION_DATE = "6. June 2022 - 17. April 2023";
 
 
 	public static void main(String[] args) throws Exception {
@@ -96,6 +100,7 @@ public class FinanceEmailWriter {
 		int costCounterHouse = 0;
 		int costCounterFood = 0;
 		int costCounterTransport = 0;
+		int costCounterCredit = 0;
 		int costCounterOther = 0;
 
 		List<Person> people = new ArrayList<>();
@@ -207,15 +212,23 @@ public class FinanceEmailWriter {
 						costCounterSum += amountInt;
 
 						switch (catStr) {
+							// Food
 							case "f":
 								costCounterFood += amountInt;
 								break;
+							// House
 							case "h":
 								costCounterHouse += amountInt;
 								break;
+							// Transport
 							case "t":
 								costCounterTransport += amountInt;
 								break;
+							// Credit
+							case "c":
+								costCounterCredit += amountInt;
+								break;
+							// Other
 							default:
 								costCounterOther += amountInt;
 								break;
@@ -252,6 +265,9 @@ public class FinanceEmailWriter {
 				String rowNum = XlsxSheet.nameToRow(key);
 				if (StrUtils.strToInt(rowNum) > 9) {
 					Record val = entry.getValue();
+					if (val == null) {
+						continue;
+					}
 					String name = val.asString();
 					name = Person.sanitizeName(name);
 					foundPeople.add(name);
@@ -439,6 +455,9 @@ public class FinanceEmailWriter {
 				String rowNum = XlsxSheet.nameToRow(key);
 				if (StrUtils.strToInt(rowNum) > HEAD_LINE_AMOUNT_IN_PAYMENTS) {
 					Record val = entry.getValue();
+					if (val == null) {
+						continue;
+					}
 					String name = val.asString();
 					List<String> cellList = new ArrayList<>();
 					String bContentStr = sheetInPayments.getCellContentString("B" + rowNum);
@@ -460,7 +479,7 @@ public class FinanceEmailWriter {
 
 			if (isEmpty) {
 				Set<String> names = rows.keySet();
-				List<String> sortedNames = SortUtils.sortAlphabetically(names);
+				List<String> sortedNames = SortUtils.sort(names, SortOrder.ALPHABETICAL_IGNORE_UMLAUTS);
 				int cur = HEAD_LINE_AMOUNT_IN_PAYMENTS + 1;
 				for (String sortedName : sortedNames) {
 					for (Map.Entry<String, List<String>> row : rows.entrySet()) {
@@ -484,6 +503,8 @@ public class FinanceEmailWriter {
 			}
 		}
 
+		int amountOfPeopleZeroNights = 0;
+
 		for (Person person : people) {
 
 			System.out.println(person.getName() + " (" + person.getContactMethod() + "), " +
@@ -497,6 +518,18 @@ public class FinanceEmailWriter {
 			String outContent = templateText;
 			outContent = StrUtils.replaceAll(outContent, CONTACT_METHOD, person.getContactMethod());
 			outContent = StrUtils.replaceAll(outContent, NAME, person.getDisplayName());
+
+			if (person.getNights() == 0) {
+				amountOfPeopleZeroNights++;
+				outContent = StrUtils.replaceAll(outContent, BEGIN_IF_NIGHTS_ZERO, "");
+				outContent = StrUtils.replaceAll(outContent, END_IF_NIGHTS_ZERO, "");
+				outContent = removeFromTo(outContent, BEGIN_IF_NIGHTS_NON_ZERO, END_IF_NIGHTS_NON_ZERO);
+			} else {
+				outContent = StrUtils.replaceAll(outContent, BEGIN_IF_NIGHTS_NON_ZERO, "");
+				outContent = StrUtils.replaceAll(outContent, END_IF_NIGHTS_NON_ZERO, "");
+				outContent = removeFromTo(outContent, BEGIN_IF_NIGHTS_ZERO, END_IF_NIGHTS_ZERO);
+			}
+
 			String idealPayStr = FinanceUtils.formatMoney(person.getIdealPay()) + " €";
 			if (person.getNights() != 0) {
 				idealPayStr += " (" + FinanceUtils.formatMoney(person.getIdealPay() / person.getNights()) + " € per night)";
@@ -555,6 +588,9 @@ public class FinanceEmailWriter {
 			}
 			encounteredNames.add(uniqueName);
 
+			// sanitize whitespaces just in case
+			outContent = StrUtils.replaceAll(outContent, "  ", " ");
+
 			TextFile outFile = new TextFile(outputDirectory, uniqueName + ".txt");
 			outFile.saveContent(outContent);
 
@@ -569,7 +605,11 @@ public class FinanceEmailWriter {
 				sheetInCalculation.setCellContent("H" + rollingRowNum, person.getTransCosts() / 100.0);
 				sheetInCalculation.setCellContent("I" + rollingRowNum, person.getActualTransaction() / 100.0);
 				sheetInCalculation.setCellContent("J" + rollingRowNum, person.getNights());
-				sheetInCalculation.setCellContent("K" + rollingRowNum, person.getAgreedPay() / (person.getNights() * 100.0));
+				if (person.getNights() == 0) {
+					sheetInCalculation.setCellContent("K" + rollingRowNum, "");
+				} else {
+					sheetInCalculation.setCellContent("K" + rollingRowNum, person.getAgreedPay() / (person.getNights() * 100.0));
+				}
 				rollingRowNum++;
 
 				// set actual transaction on IN Payments
@@ -579,6 +619,9 @@ public class FinanceEmailWriter {
 					String rowNum = XlsxSheet.nameToRow(key);
 					if (StrUtils.strToInt(rowNum) > HEAD_LINE_AMOUNT_IN_PAYMENTS) {
 						Record val = entry.getValue();
+						if (val == null) {
+							continue;
+						}
 						String name = val.asString();
 						name = Person.sanitizeName(name);
 						if (person.getName().equals(name)) {
@@ -610,7 +653,7 @@ public class FinanceEmailWriter {
 			statsContent.append("Includes food costs: ");
 			statsContent.append(FinanceUtils.formatMoney(costCounterFood) + " €");
 			statsContent.append("\r\n");
-			if (costCounterTransport > 0) {
+			if (costCounterTransport != 0) {
 				statsContent.append("Includes everyone's transport costs: ");
 				statsContent.append(FinanceUtils.formatMoney(costCounterTransport) + " €");
 				statsContent.append("\r\n");
@@ -618,8 +661,23 @@ public class FinanceEmailWriter {
 			statsContent.append("Includes other costs, such as energy, cleaning, etc.: ");
 			statsContent.append(FinanceUtils.formatMoney(costCounterOther) + " €");
 			statsContent.append("\r\n");
+			if (costCounterCredit != 0) {
+				if (costCounterCredit > 0) {
+					statsContent.append("Includes credit set aside for next time: ");
+					statsContent.append(FinanceUtils.formatMoney(costCounterCredit) + " €");
+				} else {
+					statsContent.append("Reduced by credit that was set aside last time: ");
+					statsContent.append(FinanceUtils.formatMoney(-costCounterCredit) + " €");
+				}
+				statsContent.append("\r\n");
+			}
 		}
-		statsContent.append("Amount of people: " + amountOfPeople);
+		statsContent.append("\r\n");
+		statsContent.append("Amount of people: " + amountOfPeople + " (" + amountOfPeopleZeroNights + " " +
+			(amountOfPeopleZeroNights == 1 ? "person" : "people") +
+			" cancelled after the deadline and " +
+			(amountOfPeopleZeroNights == 1 ? "is" : "are") +
+			" included in the stats)");
 		statsContent.append("\r\n");
 		statsContent.append(" ");
 		statsContent.append("\r\n");
@@ -721,18 +779,40 @@ public class FinanceEmailWriter {
 
 	private static String removeFromLineToLine(String outContent, String fromLine, String toLine) {
 
-		int start = outContent.indexOf(fromLine + "\r\n");
-		int end = outContent.indexOf(toLine + "\r\n");
-		if ((start > -1) && (end > -1)) {
-			outContent = outContent.substring(0, start) + outContent.substring(end + toLine.length() + 2);
-		}
+		boolean found = true;
 
-		start = outContent.indexOf(fromLine + "\n");
-		end = outContent.indexOf(toLine + "\n");
-		if ((start > -1) && (end > -1)) {
-			outContent = outContent.substring(0, start) + outContent.substring(end + toLine.length() + 1);
+		while (found) {
+			found = false;
+
+			int start = outContent.indexOf(fromLine + "\r\n");
+			int end = outContent.indexOf(toLine + "\r\n");
+			if ((start > -1) && (end > start)) {
+				outContent = outContent.substring(0, start) + outContent.substring(end + toLine.length() + 2);
+				found = true;
+			}
+
+			start = outContent.indexOf(fromLine + "\n");
+			end = outContent.indexOf(toLine + "\n");
+			if ((start > -1) && (end > start)) {
+				outContent = outContent.substring(0, start) + outContent.substring(end + toLine.length() + 1);
+				found = true;
+			}
 		}
 
 		return outContent;
 	}
+
+	private static String removeFromTo(String outContent, String from, String to) {
+
+		while (true) {
+			int start = outContent.indexOf(from);
+			int end = outContent.indexOf(to);
+			if ((start > -1) && (end > start)) {
+				outContent = outContent.substring(0, start) + outContent.substring(end + to.length());
+			} else {
+				return outContent;
+			}
+		}
+	}
+
 }

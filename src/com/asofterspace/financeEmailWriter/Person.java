@@ -115,6 +115,9 @@ public class Person {
 		String result = "";
 
 		if (expenses.size() < 1) {
+			if (getHadExpense() == 0) {
+				return "(none)";
+			}
 			return FinanceUtils.formatMoney(getHadExpense()) + " €";
 		}
 
@@ -181,7 +184,11 @@ public class Person {
 	}
 
 	public void setNights(Integer nights) {
-		this.nights = nights;
+		if (nights == null) {
+			this.nights = 0;
+		} else {
+			this.nights = nights;
+		}
 	}
 
 	public String getArrivalDate() {
