@@ -60,8 +60,8 @@ public class FinanceEmailWriter {
 	private static final int HEAD_LINE_AMOUNT_IN_PAYMENTS = 9;
 
 	public final static String PROGRAM_TITLE = "FinanceEmailWriter";
-	public final static String VERSION_NUMBER = "0.0.1.1(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
-	public final static String VERSION_DATE = "6. June 2022 - 17. April 2023";
+	public final static String VERSION_NUMBER = "0.0.1.2(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
+	public final static String VERSION_DATE = "6. June 2022 - 30. April 2023";
 
 
 	public static void main(String[] args) throws Exception {
@@ -720,14 +720,17 @@ public class FinanceEmailWriter {
 		statsContent.append(StrUtils.doubleToStr((1.0 * amountOfNights) / amountOfPeople, 2));
 		statsContent.append("\r\n");
 		if (amountOfNights > 0) {
-			statsContent.append("Average ideal payment per night: ");
+			statsContent.append("Average ideal payment per night per person: ");
 			statsContent.append(FinanceUtils.formatMoney(idealPayCounter / amountOfNights) + " €");
 			statsContent.append("\r\n");
-			statsContent.append("Average maximum payment per night: ");
+			statsContent.append("Average maximum payment per night per person: ");
 			statsContent.append(FinanceUtils.formatMoney(maxPayCounter / amountOfNights) + " €");
 			statsContent.append("\r\n");
-			statsContent.append("Average payment per night: ");
+			statsContent.append("Average total payment per night per person: ");
 			statsContent.append(FinanceUtils.formatMoney(costCounterSum / amountOfNights) + " €");
+			statsContent.append("\r\n");
+			statsContent.append("Average food-only payment per night per person: ");
+			statsContent.append(FinanceUtils.formatMoney(costCounterFood / amountOfNights) + " €");
 			statsContent.append("\r\n");
 		}
 		statsFile.saveContent(statsContent.toString());
