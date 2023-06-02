@@ -6,6 +6,7 @@ package com.asofterspace.financeEmailWriter;
 
 import com.asofterspace.toolbox.accounting.FinanceUtils;
 import com.asofterspace.toolbox.utils.Pair;
+import com.asofterspace.toolbox.utils.Record;
 import com.asofterspace.toolbox.utils.StrUtils;
 
 import java.util.ArrayList;
@@ -18,8 +19,10 @@ public class Person {
 	private String name;
 	private String contactMethod;
 	private Integer idealPay;
+	private SpecialPay idealPaySpecial = null;
 	private Integer calcIdealPay;
 	private Integer maxPay;
+	private SpecialPay maxPaySpecial = null;
 	private Integer agreedPay;
 	private Integer hadExpense;
 	private String transInfo;
@@ -74,6 +77,47 @@ public class Person {
 		this.idealPay = idealPay;
 	}
 
+	public void setIdealPayRec(Record idealPayRec) {
+		this.idealPaySpecial = null;
+		this.idealPay = null;
+		if (idealPayRec != null) {
+			String idealPayStr = idealPayRec.asString();
+			if (idealPayStr != null) {
+				String payStrUpCase = idealPayStr.trim().toUpperCase();
+				for (SpecialPay sp : SpecialPay.values()) {
+					if (sp.toString().toUpperCase().equals(payStrUpCase)) {
+						this.idealPaySpecial = sp;
+						return;
+					}
+				}
+			}
+			Double idealPayDouble = idealPayRec.asDouble();
+			if (idealPayDouble != null) {
+				this.idealPay = (int) Math.round(idealPayDouble * 100);
+				return;
+			}
+		}
+		this.idealPay = 0;
+	}
+
+	public boolean hasSpecialIdealPay() {
+		return this.idealPaySpecial != null;
+	}
+
+	public void updateSpecialIdealPay(int minVal, int maxVal, int avgVal) {
+		switch (this.idealPaySpecial) {
+			case MIN:
+				this.idealPay = minVal;
+				break;
+			case MAX:
+				this.idealPay = maxVal;
+				break;
+			default:
+				this.idealPay = avgVal;
+				break;
+		}
+	}
+
 	public Integer getCalcIdealPay() {
 		return calcIdealPay;
 	}
@@ -88,6 +132,47 @@ public class Person {
 
 	public void setMaxPay(Integer maxPay) {
 		this.maxPay = maxPay;
+	}
+
+	public void setMaxPayRec(Record maxPayRec) {
+		this.maxPaySpecial = null;
+		this.maxPay = null;
+		if (maxPayRec != null) {
+			String maxPayStr = maxPayRec.asString();
+			if (maxPayStr != null) {
+				String payStrUpCase = maxPayStr.trim().toUpperCase();
+				for (SpecialPay sp : SpecialPay.values()) {
+					if (sp.toString().toUpperCase().equals(payStrUpCase)) {
+						this.maxPaySpecial = sp;
+						return;
+					}
+				}
+			}
+			Double maxPayDouble = maxPayRec.asDouble();
+			if (maxPayDouble != null) {
+				this.maxPay = (int) Math.round(maxPayDouble * 100);
+				return;
+			}
+		}
+		this.maxPay = 0;
+	}
+
+	public boolean hasSpecialMaxPay() {
+		return this.maxPaySpecial != null;
+	}
+
+	public void updateSpecialMaxPay(int minVal, int maxVal, int avgVal) {
+		switch (this.maxPaySpecial) {
+			case MIN:
+				this.maxPay = minVal;
+				break;
+			case MAX:
+				this.maxPay = maxVal;
+				break;
+			default:
+				this.maxPay = avgVal;
+				break;
+		}
 	}
 
 	public Integer getAgreedPay() {

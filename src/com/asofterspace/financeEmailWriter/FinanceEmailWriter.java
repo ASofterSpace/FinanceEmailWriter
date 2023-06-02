@@ -60,8 +60,8 @@ public class FinanceEmailWriter {
 	private static final int HEAD_LINE_AMOUNT_IN_PAYMENTS = 9;
 
 	public final static String PROGRAM_TITLE = "FinanceEmailWriter";
-	public final static String VERSION_NUMBER = "0.0.1.2(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
-	public final static String VERSION_DATE = "6. June 2022 - 30. April 2023";
+	public final static String VERSION_NUMBER = "0.0.1.3(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
+	public final static String VERSION_DATE = "6. June 2022 - 1. June 2023";
 
 
 	public static void main(String[] args) throws Exception {
@@ -92,10 +92,6 @@ public class FinanceEmailWriter {
 		String templateText = templateFile.getContent();
 		templateFile.copyToDisk(new File(outputDirectory, "_template.txt"));
 
-		int amountOfPeople = 0;
-		int amountOfNights = 0;
-		int idealPayCounter = 0;
-		int maxPayCounter = 0;
 		int costCounterSum = 0;
 		int costCounterHouse = 0;
 		int costCounterFood = 0;
@@ -180,8 +176,8 @@ public class FinanceEmailWriter {
 						people.add(person);
 
 						person.setContactMethod(sheetInData.getCellContentString("B" + rowNum));
-						person.setIdealPay((int) Math.round(sheetInData.getCellContentDoubleNonNull("C" + rowNum) * 100));
-						person.setMaxPay((int) Math.round(sheetInData.getCellContentDoubleNonNull("D" + rowNum) * 100));
+						person.setIdealPayRec(sheetInData.getCellContent("C" + rowNum));
+						person.setMaxPayRec(sheetInData.getCellContent("D" + rowNum));
 						person.setArrivalDate(sheetInData.getCellContentString("E" + rowNum));
 						person.setLeaveDate(sheetInData.getCellContentString("F" + rowNum));
 						person.setNights(sheetInData.getCellContentInteger("G" + rowNum));
@@ -350,6 +346,57 @@ public class FinanceEmailWriter {
 				content = inputCsv.getContentLineInColumns();
 			}
 		}
+
+
+		int amountOfPeople = 0;
+		int amountOfPeopleIdeal = 0;
+		int amountOfPeopleMax = 0;
+		int amountOfNights = 0;
+		int idealPayCounter = 0;
+		int idealPayMin = Integer.MAX_VALUE;
+		int idealPayMax = 0;
+		int maxPayCounter = 0;
+		int maxPayMin = Integer.MAX_VALUE;
+		int maxPayMax = 0;
+
+		for (Person person : people) {
+			if (!person.hasSpecialIdealPay()) {
+				amountOfPeopleIdeal++;
+				int cur = person.getIdealPay();
+				idealPayCounter += cur;
+				if (cur > idealPayMax) {
+					idealPayMax = cur;
+				}
+				if (cur < idealPayMin) {
+					idealPayMin = cur;
+				}
+			}
+			if (!person.hasSpecialMaxPay()) {
+				amountOfPeopleMax++;
+				int cur = person.getMaxPay();
+				maxPayCounter += cur;
+				if (cur > maxPayMax) {
+					maxPayMax = cur;
+				}
+				if (cur < maxPayMin) {
+					maxPayMin = cur;
+				}
+			}
+		}
+
+		for (Person person : people) {
+			if (person.hasSpecialIdealPay()) {
+				person.updateSpecialIdealPay(idealPayMin, idealPayMax, idealPayCounter / amountOfPeopleIdeal);
+			}
+			if (person.hasSpecialMaxPay()) {
+				person.updateSpecialMaxPay(maxPayMin, maxPayMax, maxPayCounter / amountOfPeopleMax);
+			}
+		}
+
+
+		idealPayCounter = 0;
+		maxPayCounter = 0;
+		amountOfPeople = 0;
 
 		for (Person person : people) {
 			amountOfPeople++;
