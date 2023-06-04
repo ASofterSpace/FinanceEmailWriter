@@ -292,6 +292,11 @@ public class Person {
 		this.leaveDate = leaveDate;
 	}
 
+	public boolean cancelledAfterDeadline() {
+		final String CANCELLED = "CANCELLED";
+		return CANCELLED.equals(arrivalDate) || CANCELLED.equals(leaveDate);
+	}
+
 	public Integer getActualTransaction() {
 		return agreedPay - hadExpense - transCosts;
 	}

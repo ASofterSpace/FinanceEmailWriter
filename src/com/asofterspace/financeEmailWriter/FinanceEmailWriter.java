@@ -566,7 +566,7 @@ public class FinanceEmailWriter {
 			outContent = StrUtils.replaceAll(outContent, CONTACT_METHOD, person.getContactMethod());
 			outContent = StrUtils.replaceAll(outContent, NAME, person.getDisplayName());
 
-			if (person.getNights() == 0) {
+			if (person.cancelledAfterDeadline()) {
 				amountOfPeopleZeroNights++;
 				outContent = StrUtils.replaceAll(outContent, BEGIN_IF_NIGHTS_ZERO, "");
 				outContent = StrUtils.replaceAll(outContent, END_IF_NIGHTS_ZERO, "");
