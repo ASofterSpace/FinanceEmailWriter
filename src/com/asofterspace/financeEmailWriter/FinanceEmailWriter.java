@@ -4,6 +4,7 @@
  */
 package com.asofterspace.financeEmailWriter;
 
+import com.asofterspace.toolbox.accounting.Currency;
 import com.asofterspace.toolbox.accounting.FinanceUtils;
 import com.asofterspace.toolbox.coders.UniversalTextDecoder;
 import com.asofterspace.toolbox.io.CsvFile;
@@ -11,6 +12,7 @@ import com.asofterspace.toolbox.io.Directory;
 import com.asofterspace.toolbox.io.File;
 import com.asofterspace.toolbox.io.IoUtils;
 import com.asofterspace.toolbox.io.TextFile;
+import com.asofterspace.toolbox.utils.Language;
 import com.asofterspace.toolbox.utils.MathUtils;
 import com.asofterspace.toolbox.utils.Record;
 import com.asofterspace.toolbox.utils.SortOrder;
@@ -30,7 +32,8 @@ import java.util.Set;
 
 public class FinanceEmailWriter {
 
-	// fields in email texts
+	private static final String SET_GERMAN = "(SET_GERMAN)";
+	private static final String SET_ENGLISH = "(SET_ENGLISH)";
 	private static final String CONTACT_METHOD = "(CONTACT_METHOD)";
 	private static final String NAME = "(NAME)";
 	private static final String IDEAL_PAY = "(IDEAL_PAY)";
@@ -60,8 +63,10 @@ public class FinanceEmailWriter {
 	private static final int HEAD_LINE_AMOUNT_IN_PAYMENTS = 9;
 
 	public final static String PROGRAM_TITLE = "FinanceEmailWriter";
-	public final static String VERSION_NUMBER = "0.0.1.3(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
-	public final static String VERSION_DATE = "6. June 2022 - 1. June 2023";
+	public final static String VERSION_NUMBER = "0.0.1.5(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
+	public final static String VERSION_DATE = "6. June 2022 - 24. September 2023";
+
+	public static Language LANGUAGE = Language.EN;
 
 
 	public static void main(String[] args) throws Exception {
@@ -91,6 +96,18 @@ public class FinanceEmailWriter {
 		TextFile templateFile = new TextFile("input/template.txt");
 		String templateText = templateFile.getContent();
 		templateFile.copyToDisk(new File(outputDirectory, "_template.txt"));
+
+		if (templateText.contains(SET_GERMAN + "\n") || templateText.contains(SET_GERMAN + "\r\n")) {
+			templateText = StrUtils.replaceAll(templateText, SET_GERMAN + "\n", "");
+			templateText = StrUtils.replaceAll(templateText, SET_GERMAN + "\r\n", "");
+			LANGUAGE = Language.DE;
+		}
+
+		if (templateText.contains(SET_ENGLISH + "\n") || templateText.contains(SET_ENGLISH + "\r\n")) {
+			templateText = StrUtils.replaceAll(templateText, SET_ENGLISH + "\n", "");
+			templateText = StrUtils.replaceAll(templateText, SET_ENGLISH + "\r\n", "");
+			LANGUAGE = Language.EN;
+		}
 
 		int costCounterSum = 0;
 		int costCounterHouse = 0;
@@ -243,7 +260,8 @@ public class FinanceEmailWriter {
 							}
 						}
 
-						System.out.println("payment row: " + rowNum + ", A: " + FinanceUtils.formatMoney(amountInt) + " €, P: " + personStr + ", C: " + catStr);
+						System.out.println("payment row: " + rowNum + ", A: " + FinanceUtils.formatMoney(amountInt, Currency.E, LANGUAGE) +
+							", P: " + personStr + ", C: " + catStr);
 
 						if (!foundPerson) {
 							System.out.println("No person with the name " + personStr + " found, cannot assign the expense!");
@@ -474,11 +492,11 @@ public class FinanceEmailWriter {
 			}
 		}
 
-		System.out.println("Costs: " + FinanceUtils.formatMoney(costCounterSum) + " €");
-		System.out.println("Orig Ideal Sum: " + FinanceUtils.formatMoney(idealPayCounter) + " €");
-		System.out.println("Orig Max Sum: " + FinanceUtils.formatMoney(maxPayCounter) + " €");
+		System.out.println("Costs: " + FinanceUtils.formatMoney(costCounterSum, Currency.E, LANGUAGE));
+		System.out.println("Orig Ideal Sum: " + FinanceUtils.formatMoney(idealPayCounter, Currency.E, LANGUAGE));
+		System.out.println("Orig Max Sum: " + FinanceUtils.formatMoney(maxPayCounter, Currency.E, LANGUAGE));
 		System.out.println("Overall Orig Ideal to Orig Max Ratio: " + overallIdealToMaxRatio);
-		System.out.println("Calculated Ideal Sum: " + FinanceUtils.formatMoney(calcIdealPayCounter) + " €");
+		System.out.println("Calculated Ideal Sum: " + FinanceUtils.formatMoney(calcIdealPayCounter, Currency.E, LANGUAGE));
 		System.out.println("Interpolation Factor between Calc Ideal and Orig Max: " + interpolationFactor);
 
 		List<Integer> payList = new ArrayList<>();
@@ -555,11 +573,11 @@ public class FinanceEmailWriter {
 		for (Person person : people) {
 
 			System.out.println(person.getName() + " (" + person.getContactMethod() + "), " +
-				"ideal: " + FinanceUtils.formatMoney(person.getIdealPay()) + " €, " +
-				"calc ideal: " + FinanceUtils.formatMoney(person.getCalcIdealPay()) + " €, " +
-				"max: " + FinanceUtils.formatMoney(person.getMaxPay()) + " €, " +
-				"payment: " + FinanceUtils.formatMoney(person.getAgreedPay()) + " €, " +
-				"hadExpense: " + FinanceUtils.formatMoney(person.getHadExpense()) + " €, " +
+				"ideal: " + FinanceUtils.formatMoney(person.getIdealPay(), Currency.E, LANGUAGE) + ", " +
+				"calc ideal: " + FinanceUtils.formatMoney(person.getCalcIdealPay(), Currency.E, LANGUAGE) + ", " +
+				"max: " + FinanceUtils.formatMoney(person.getMaxPay(), Currency.E, LANGUAGE) + ", " +
+				"payment: " + FinanceUtils.formatMoney(person.getAgreedPay(), Currency.E, LANGUAGE) + ", " +
+				"hadExpense: " + FinanceUtils.formatMoney(person.getHadExpense(), Currency.E, LANGUAGE) + ", " +
 				"(" + person.getNights() + ": " + person.getArrivalDate() + " - " + person.getLeaveDate() + ")");
 
 			String outContent = templateText;
@@ -577,17 +595,17 @@ public class FinanceEmailWriter {
 				outContent = removeFromTo(outContent, BEGIN_IF_NIGHTS_ZERO, END_IF_NIGHTS_ZERO);
 			}
 
-			String idealPayStr = FinanceUtils.formatMoney(person.getIdealPay()) + " €";
+			String idealPayStr = FinanceUtils.formatMoney(person.getIdealPay(), Currency.E, LANGUAGE);
 			if (person.getNights() != 0) {
-				idealPayStr += " (" + FinanceUtils.formatMoney(person.getIdealPay() / person.getNights()) + " € per night)";
+				idealPayStr += " (" + FinanceUtils.formatMoney(person.getIdealPay() / person.getNights(), Currency.E, LANGUAGE) + " per night)";
 			}
 			outContent = StrUtils.replaceAll(outContent, IDEAL_PAY, idealPayStr);
-			String maxPayStr = FinanceUtils.formatMoney(person.getMaxPay()) + " €";
+			String maxPayStr = FinanceUtils.formatMoney(person.getMaxPay(), Currency.E, LANGUAGE);
 			if (person.getNights() != 0) {
-				maxPayStr += " (" + FinanceUtils.formatMoney(person.getMaxPay() / person.getNights()) + " € per night)";
+				maxPayStr += " (" + FinanceUtils.formatMoney(person.getMaxPay() / person.getNights(), Currency.E, LANGUAGE) + " per night)";
 			}
 			outContent = StrUtils.replaceAll(outContent, MAX_PAY, maxPayStr);
-			outContent = StrUtils.replaceAll(outContent, AGREED_PAY, FinanceUtils.formatMoney(person.getAgreedPay()) + " €");
+			outContent = StrUtils.replaceAll(outContent, AGREED_PAY, FinanceUtils.formatMoney(person.getAgreedPay(), Currency.E, LANGUAGE));
 
 			if (person.getHadExpense() == 0) {
 				outContent = removeFromLineToLine(outContent, BEGIN_EXPENSE, END_EXPENSE);
@@ -614,7 +632,7 @@ public class FinanceEmailWriter {
 			// no longer necessary, as this is just part of the transport costs now
 			// outContent = StrUtils.replaceAll(outContent, TRANSPORT_INFO, ""+person.getTransInfo());
 			outContent = StrUtils.replaceAll(outContent, TRANSPORT_COSTS,person.getTransportText());
-			outContent = StrUtils.replaceAll(outContent, ACTUAL_TRANSACTION, FinanceUtils.formatMoney(person.getActualTransaction()) + " €");
+			outContent = StrUtils.replaceAll(outContent, ACTUAL_TRANSACTION, FinanceUtils.formatMoney(person.getActualTransaction(), Currency.E, LANGUAGE));
 			if (person.getActualTransaction() < 0) {
 				outContent = removeFromLineToLine(outContent, BEGIN_IF_POSITIVE, END_IF_POSITIVE);
 				outContent = removeLine(outContent, BEGIN_IF_NEGATIVE);
@@ -686,98 +704,190 @@ public class FinanceEmailWriter {
 
 		TextFile statsFile = new TextFile(outputDirectory, "_stats.txt");
 		StringBuilder statsContent = new StringBuilder();
-		statsContent.append("Stats for nerds:");
+		if (LANGUAGE == Language.DE) {
+			statsContent.append("Statistik für Nerds:");
+		} else {
+			statsContent.append("Stats for nerds:");
+		}
 		statsContent.append("\r\n");
 		statsContent.append(" ");
 		statsContent.append("\r\n");
-		statsContent.append("Amount to be paid overall: ");
-		statsContent.append(FinanceUtils.formatMoney(costCounterSum) + " €");
+		if (LANGUAGE == Language.DE) {
+			statsContent.append("Gesamtsumme: ");
+		} else {
+			statsContent.append("Amount to be paid overall: ");
+		}
+		statsContent.append(FinanceUtils.formatMoney(costCounterSum, Currency.E, LANGUAGE));
 		statsContent.append("\r\n");
 		if (usingXlsx) {
-			statsContent.append("Includes house costs: ");
-			statsContent.append(FinanceUtils.formatMoney(costCounterHouse) + " €");
+			if (LANGUAGE == Language.DE) {
+				statsContent.append("Einschließlich Hauskosten: ");
+			} else {
+				statsContent.append("Includes house costs: ");
+			}
+			statsContent.append(FinanceUtils.formatMoney(costCounterHouse, Currency.E, LANGUAGE));
 			statsContent.append("\r\n");
-			statsContent.append("Includes food costs: ");
-			statsContent.append(FinanceUtils.formatMoney(costCounterFood) + " €");
+			if (LANGUAGE == Language.DE) {
+				statsContent.append("Einschließlich Essenskosten: ");
+			} else {
+				statsContent.append("Includes food costs: ");
+			}
+			statsContent.append(FinanceUtils.formatMoney(costCounterFood, Currency.E, LANGUAGE));
 			statsContent.append("\r\n");
 			if (costCounterTransport != 0) {
-				statsContent.append("Includes everyone's transport costs: ");
-				statsContent.append(FinanceUtils.formatMoney(costCounterTransport) + " €");
+				if (LANGUAGE == Language.DE) {
+					statsContent.append("Einschließlich Transportkosten von allen: ");
+				} else {
+					statsContent.append("Includes everyone's transport costs: ");
+				}
+				statsContent.append(FinanceUtils.formatMoney(costCounterTransport, Currency.E, LANGUAGE));
 				statsContent.append("\r\n");
 			}
-			statsContent.append("Includes other costs, such as energy, cleaning, etc.: ");
-			statsContent.append(FinanceUtils.formatMoney(costCounterOther) + " €");
+			if (LANGUAGE == Language.DE) {
+				statsContent.append("Einschließlich anderer Kosten wie Strom, Reinigung etc.: ");
+			} else {
+				statsContent.append("Includes other costs, such as energy, cleaning, etc.: ");
+			}
+			statsContent.append(FinanceUtils.formatMoney(costCounterOther, Currency.E, LANGUAGE));
 			statsContent.append("\r\n");
 			if (costCounterCredit != 0) {
 				if (costCounterCredit > 0) {
-					statsContent.append("Includes credit set aside for next time: ");
-					statsContent.append(FinanceUtils.formatMoney(costCounterCredit) + " €");
+					if (LANGUAGE == Language.DE) {
+						statsContent.append("Einschließlich Geld, das wir für die Zukunft beiseite gelegt haben: ");
+					} else {
+						statsContent.append("Includes credit set aside for next time: ");
+					}
+					statsContent.append(FinanceUtils.formatMoney(costCounterCredit, Currency.E, LANGUAGE));
 				} else {
-					statsContent.append("Reduced by credit that was set aside last time: ");
-					statsContent.append(FinanceUtils.formatMoney(-costCounterCredit) + " €");
+					if (LANGUAGE == Language.DE) {
+						statsContent.append("Reduziert um Geld, das wir in der Vergangenheit beiseite gelegt haben: ");
+					} else {
+						statsContent.append("Reduced by credit that was set aside in the past: ");
+					}
+					statsContent.append(FinanceUtils.formatMoney(-costCounterCredit, Currency.E, LANGUAGE));
 				}
 				statsContent.append("\r\n");
 			}
 		}
 		statsContent.append("\r\n");
-		statsContent.append("Amount of people: " + amountOfPeople + " (" + amountOfPeopleZeroNights + " " +
-			(amountOfPeopleZeroNights == 1 ? "person" : "people") +
-			" cancelled after the deadline and " +
-			(amountOfPeopleZeroNights == 1 ? "is" : "are") +
-			" included in the stats)");
+		if (LANGUAGE == Language.DE) {
+			statsContent.append("Anzahl an Teilnehmer*innen: " + amountOfPeople + " (" + amountOfPeopleZeroNights + " " +
+				(amountOfPeopleZeroNights == 1 ? "Person hat" : "Personen haben") +
+				" nach der Deadline abgesagt und " +
+				(amountOfPeopleZeroNights == 1 ? "ist" : "sind") +
+				" Teil dieser Statistik)");
+		} else {
+			statsContent.append("Amount of people: " + amountOfPeople + " (" + amountOfPeopleZeroNights + " " +
+				(amountOfPeopleZeroNights == 1 ? "person" : "people") +
+				" cancelled after the deadline and " +
+				(amountOfPeopleZeroNights == 1 ? "is" : "are") +
+				" included in the stats)");
+		}
 		statsContent.append("\r\n");
 		statsContent.append(" ");
 		statsContent.append("\r\n");
-		statsContent.append("Average ideal payment: ");
-		statsContent.append(FinanceUtils.formatMoney(idealPayCounter / amountOfPeople) + " €");
+		if (LANGUAGE == Language.DE) {
+			statsContent.append("Durchschnitt der Ideal-Werte: ");
+		} else {
+			statsContent.append("Average ideal payment: ");
+		}
+		statsContent.append(FinanceUtils.formatMoney(idealPayCounter / amountOfPeople, Currency.E, LANGUAGE));
 		statsContent.append("\r\n");
-		statsContent.append("Average maximum payment: ");
-		statsContent.append(FinanceUtils.formatMoney(maxPayCounter / amountOfPeople) + " €");
+		if (LANGUAGE == Language.DE) {
+			statsContent.append("Durchschnitt der Maximal-Werte: ");
+		} else {
+			statsContent.append("Average maximum payment: ");
+		}
+		statsContent.append(FinanceUtils.formatMoney(maxPayCounter / amountOfPeople, Currency.E, LANGUAGE));
 		statsContent.append("\r\n");
-		statsContent.append("Average payment: ");
-		statsContent.append(FinanceUtils.formatMoney(costCounterSum / amountOfPeople) + " €");
+		if (LANGUAGE == Language.DE) {
+			statsContent.append("Durchschnittliche Zahlung: ");
+		} else {
+			statsContent.append("Average payment: ");
+		}
+		statsContent.append(FinanceUtils.formatMoney(costCounterSum / amountOfPeople, Currency.E, LANGUAGE));
 		statsContent.append("\r\n");
-		statsContent.append("Median payment: ");
+		if (LANGUAGE == Language.DE) {
+			statsContent.append("Median-Zahlung: ");
+		} else {
+			statsContent.append("Median payment: ");
+		}
 		if (amountOfPeople % 2 == 0) {
 			statsContent.append(FinanceUtils.formatMoney(
 				(sortedPayList.get(((int) Math.floor(amountOfPeople / 2)) - 1) +
-				sortedPayList.get((int) Math.floor(amountOfPeople / 2))) / 2
-			) + " €");
+				sortedPayList.get((int) Math.floor(amountOfPeople / 2))) / 2,
+				Currency.E, LANGUAGE));
 		} else {
 			statsContent.append(FinanceUtils.formatMoney(
-				sortedPayList.get((int) Math.floor(amountOfPeople / 2))
-			) + " €");
+				sortedPayList.get((int) Math.floor(amountOfPeople / 2)),
+				Currency.E, LANGUAGE));
 		}
 		statsContent.append("\r\n");
-		statsContent.append("10th percentile: ");
+		if (LANGUAGE == Language.DE) {
+			statsContent.append("10. Perzentil: ");
+		} else {
+			statsContent.append("10th percentile: ");
+		}
 		statsContent.append(FinanceUtils.formatMoney(
-			(sortedPayList.get(peopleAmountDiv10 - 1) + sortedPayList.get(peopleAmountDiv10)) / 2
-		) + " €");
-		statsContent.append(" (" + peopleAmountDiv10 + " " + (peopleAmountDiv10 == 1 ? "person pays" : "people pay") + " less than this amount)");
+			(sortedPayList.get(peopleAmountDiv10 - 1) + sortedPayList.get(peopleAmountDiv10)) / 2,
+		Currency.E, LANGUAGE));
+		if (LANGUAGE == Language.DE) {
+			statsContent.append(" (" + peopleAmountDiv10 + " " + (peopleAmountDiv10 == 1 ? "Person zahlt" : "Personen zahlen") + " weniger als das)");
+		} else {
+			statsContent.append(" (" + peopleAmountDiv10 + " " + (peopleAmountDiv10 == 1 ? "person pays" : "people pay") + " less than this amount)");
+		}
 		statsContent.append("\r\n");
-		statsContent.append("90th percentile: ");
+		if (LANGUAGE == Language.DE) {
+			statsContent.append("90. Perzentil: ");
+		} else {
+			statsContent.append("90th percentile: ");
+		}
 		statsContent.append(FinanceUtils.formatMoney(
-			(sortedPayList.get(amountOfPeople - peopleAmountDiv10) + sortedPayList.get(amountOfPeople - peopleAmountDiv10 - 1)) / 2
-		) + " €");
-		statsContent.append(" (" + peopleAmountDiv10 + " " + (peopleAmountDiv10 == 1 ? "person pays" : "people pay") + " more than this amount)");
+			(sortedPayList.get(amountOfPeople - peopleAmountDiv10) + sortedPayList.get(amountOfPeople - peopleAmountDiv10 - 1)) / 2,
+		Currency.E, LANGUAGE));
+		if (LANGUAGE == Language.DE) {
+			statsContent.append(" (" + peopleAmountDiv10 + " " + (peopleAmountDiv10 == 1 ? "Person zahlt" : "Personen zahlen") + " mehr als das)");
+		} else {
+			statsContent.append(" (" + peopleAmountDiv10 + " " + (peopleAmountDiv10 == 1 ? "person pays" : "people pay") + " more than this amount)");
+		}
 		statsContent.append("\r\n");
 		statsContent.append(" ");
 		statsContent.append("\r\n");
-		statsContent.append("Average amount of nights that people are at the event: ");
+		if (LANGUAGE == Language.DE) {
+			statsContent.append("Durchschnittliche Anzahl an Nächten pro Person: ");
+		} else {
+			statsContent.append("Average amount of nights that people are at the event: ");
+		}
 		statsContent.append(StrUtils.doubleToStr((1.0 * amountOfNights) / amountOfPeople, 2));
 		statsContent.append("\r\n");
 		if (amountOfNights > 0) {
-			statsContent.append("Average ideal payment per night per person: ");
-			statsContent.append(FinanceUtils.formatMoney(idealPayCounter / amountOfNights) + " €");
+			if (LANGUAGE == Language.DE) {
+				statsContent.append("Durchschnittlicher Ideal-Wert pro Person: ");
+			} else {
+				statsContent.append("Average ideal payment per night per person: ");
+			}
+			statsContent.append(FinanceUtils.formatMoney(idealPayCounter / amountOfNights, Currency.E, LANGUAGE));
 			statsContent.append("\r\n");
-			statsContent.append("Average maximum payment per night per person: ");
-			statsContent.append(FinanceUtils.formatMoney(maxPayCounter / amountOfNights) + " €");
+			if (LANGUAGE == Language.DE) {
+				statsContent.append("Durchschnittlicher Maximal-Wert pro Person: ");
+			} else {
+				statsContent.append("Average maximum payment per night per person: ");
+			}
+			statsContent.append(FinanceUtils.formatMoney(maxPayCounter / amountOfNights, Currency.E, LANGUAGE));
 			statsContent.append("\r\n");
-			statsContent.append("Average total payment per night per person: ");
-			statsContent.append(FinanceUtils.formatMoney(costCounterSum / amountOfNights) + " €");
+			if (LANGUAGE == Language.DE) {
+				statsContent.append("Durchschnittliche Zahlung pro Nacht pro Person: ");
+			} else {
+				statsContent.append("Average total payment per night per person: ");
+			}
+			statsContent.append(FinanceUtils.formatMoney(costCounterSum / amountOfNights, Currency.E, LANGUAGE));
 			statsContent.append("\r\n");
-			statsContent.append("Average food-only payment per night per person: ");
-			statsContent.append(FinanceUtils.formatMoney(costCounterFood / amountOfNights) + " €");
+			if (LANGUAGE == Language.DE) {
+				statsContent.append("Durchschnittliche Essenszahlung pro Nacht pro Person: ");
+			} else {
+				statsContent.append("Average food-only payment per night per person: ");
+			}
+			statsContent.append(FinanceUtils.formatMoney(costCounterFood / amountOfNights, Currency.E, LANGUAGE));
 			statsContent.append("\r\n");
 		}
 		statsFile.saveContent(statsContent.toString());
