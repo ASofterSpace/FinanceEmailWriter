@@ -597,12 +597,22 @@ public class FinanceEmailWriter {
 
 			String idealPayStr = FinanceUtils.formatMoney(person.getIdealPay(), Currency.E, LANGUAGE);
 			if (person.getNights() != 0) {
-				idealPayStr += " (" + FinanceUtils.formatMoney(person.getIdealPay() / person.getNights(), Currency.E, LANGUAGE) + " per night)";
+				idealPayStr += " (" + FinanceUtils.formatMoney(person.getIdealPay() / person.getNights(), Currency.E, LANGUAGE);
+				if (LANGUAGE == Language.DE) {
+					idealPayStr += " pro Nacht)";
+				} else {
+					idealPayStr += " per night)";
+				}
 			}
 			outContent = StrUtils.replaceAll(outContent, IDEAL_PAY, idealPayStr);
 			String maxPayStr = FinanceUtils.formatMoney(person.getMaxPay(), Currency.E, LANGUAGE);
 			if (person.getNights() != 0) {
-				maxPayStr += " (" + FinanceUtils.formatMoney(person.getMaxPay() / person.getNights(), Currency.E, LANGUAGE) + " per night)";
+				maxPayStr += " (" + FinanceUtils.formatMoney(person.getMaxPay() / person.getNights(), Currency.E, LANGUAGE);
+				if (LANGUAGE == Language.DE) {
+					maxPayStr += " pro Nacht)";
+				} else {
+					maxPayStr += " per night)";
+				}
 			}
 			outContent = StrUtils.replaceAll(outContent, MAX_PAY, maxPayStr);
 			outContent = StrUtils.replaceAll(outContent, AGREED_PAY, FinanceUtils.formatMoney(person.getAgreedPay(), Currency.E, LANGUAGE));
