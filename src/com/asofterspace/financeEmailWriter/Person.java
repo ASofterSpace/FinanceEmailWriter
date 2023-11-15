@@ -106,6 +106,10 @@ public class Person {
 		return this.idealPaySpecial != null;
 	}
 
+	public SpecialPay getSpecialIdealPay() {
+		return this.idealPaySpecial;
+	}
+
 	public void updateSpecialIdealPay(int minVal, int maxVal, int avgVal) {
 		switch (this.idealPaySpecial) {
 			case MIN:
@@ -161,6 +165,10 @@ public class Person {
 
 	public boolean hasSpecialMaxPay() {
 		return this.maxPaySpecial != null;
+	}
+
+	public SpecialPay getSpecialMaxPay() {
+		return this.maxPaySpecial;
 	}
 
 	public void updateSpecialMaxPay(int minVal, int maxVal, int avgVal) {

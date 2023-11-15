@@ -604,7 +604,11 @@ public class FinanceEmailWriter {
 					idealPayStr += " per night)";
 				}
 			}
+			if (person.getSpecialIdealPay() == SpecialPay.AVERAGE) {
+				idealPayStr += " - the average of all ideal amounts";
+			}
 			outContent = StrUtils.replaceAll(outContent, IDEAL_PAY, idealPayStr);
+
 			String maxPayStr = FinanceUtils.formatMoney(person.getMaxPay(), Currency.E, LANGUAGE);
 			if (person.getNights() != 0) {
 				maxPayStr += " (" + FinanceUtils.formatMoney(person.getMaxPay() / person.getNights(), Currency.E, LANGUAGE);
@@ -614,8 +618,16 @@ public class FinanceEmailWriter {
 					maxPayStr += " per night)";
 				}
 			}
+			if (person.getSpecialMaxPay() == SpecialPay.AVERAGE) {
+				maxPayStr += " - the average of all max amounts";
+			}
 			outContent = StrUtils.replaceAll(outContent, MAX_PAY, maxPayStr);
-			outContent = StrUtils.replaceAll(outContent, AGREED_PAY, FinanceUtils.formatMoney(person.getAgreedPay(), Currency.E, LANGUAGE));
+
+			String agreedPayStr = FinanceUtils.formatMoney(person.getAgreedPay(), Currency.E, LANGUAGE);
+			if ((person.getSpecialIdealPay() == SpecialPay.AVERAGE) && (person.getSpecialMaxPay() == SpecialPay.AVERAGE)) {
+				agreedPayStr += " - the average of all payment amounts";
+			}
+			outContent = StrUtils.replaceAll(outContent, AGREED_PAY, agreedPayStr);
 
 			if (person.getHadExpense() == 0) {
 				outContent = removeFromLineToLine(outContent, BEGIN_EXPENSE, END_EXPENSE);
