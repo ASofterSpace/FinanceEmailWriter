@@ -570,6 +570,10 @@ public class FinanceEmailWriter {
 
 		int amountOfPeopleZeroNights = 0;
 
+		StringBuilder peopleWhoPayMore = new StringBuilder();
+		String peopleWhoPayMoreSep = "";
+		int peopleWhoPayMoreAmount = 0;
+
 		for (Person person : people) {
 
 			System.out.println(person.getName() + " (" + person.getContactMethod() + "), " +
@@ -712,12 +716,23 @@ public class FinanceEmailWriter {
 						String name = val.asString();
 						name = Person.sanitizeName(name);
 						if (person.getName().equals(name)) {
+
+							Double prevPayAmount = sheetInPayments.getCellContentDouble("E" + rowNum);
+							if (prevPayAmount != null) {
+								System.out.println(name + ": " + (person.getActualTransaction() / 100.0) + " vs. " + prevPayAmount);
+								if (person.getActualTransaction() / 100.0 > prevPayAmount) {
+									peopleWhoPayMore.append(peopleWhoPayMoreSep);
+									peopleWhoPayMore.append(name);
+									peopleWhoPayMoreAmount++;
+									peopleWhoPayMoreSep = ", ";
+								}
+							}
+
 							sheetInPayments.setCellContent("E" + rowNum, person.getActualTransaction() / 100.0);
 							sheetInPayments.setCellContent("H" + rowNum, person.getContactMethod());
 						}
 					}
 				}
-
 			}
 		}
 
@@ -918,6 +933,11 @@ public class FinanceEmailWriter {
 			sheetStatistics.setCellContent("A4", statsContent.toString());
 
 			inputXlsx.saveTo(outputDirectory.getAbsoluteDirname() + "/_output.xlsx");
+		}
+
+		if (peopleWhoPayMoreAmount > 0) {
+			System.out.println("\n\n\nATTENTION!\n\n" + peopleWhoPayMoreAmount + " people (" + peopleWhoPayMore +
+				") all pay more than they did last time!\n\n");
 		}
 	}
 
