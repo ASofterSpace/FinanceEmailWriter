@@ -23,7 +23,6 @@ import com.asofterspace.toolbox.xlsx.XlsxFile;
 import com.asofterspace.toolbox.xlsx.XlsxSheet;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -63,8 +62,8 @@ public class FinanceEmailWriter {
 	private static final int HEAD_LINE_AMOUNT_IN_PAYMENTS = 9;
 
 	public final static String PROGRAM_TITLE = "FinanceEmailWriter";
-	public final static String VERSION_NUMBER = "0.0.1.5(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
-	public final static String VERSION_DATE = "6. June 2022 - 24. September 2023";
+	public final static String VERSION_NUMBER = "0.0.1.6(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
+	public final static String VERSION_DATE = "6. June 2022 - 23. April 2024";
 
 	public static Language LANGUAGE = Language.EN;
 
@@ -310,7 +309,7 @@ public class FinanceEmailWriter {
 			}
 
 			int highestRowNum = sheetInCalculation.getHighestRowNum();
-			sheetInCalculation.deleteCellBlock("A5", "J" + highestRowNum);
+			sheetInCalculation.deleteCellBlock("A5", "K" + highestRowNum);
 
 		} else {
 			// fallback approach: use CSV input file...
@@ -508,6 +507,10 @@ public class FinanceEmailWriter {
 		Set<String> encounteredNames = new HashSet<>();
 		int rollingRowNum = 5;
 
+		System.out.println("NOT sorting people as the XlsxSheet implementation would just overwrite the shared names of other sheets!");
+		// only un-comment the following again once this here is fixed in the XlsxSheet class:
+		// edit the shared string itself - TODO :: actually, check if the string is in use anywhere else first!
+		/*
 		if (usingXlsx) {
 			// sort people on IN Payments alphabetically - but only if the rest of the rows is empty!
 			// soooo check that...
@@ -543,6 +546,7 @@ public class FinanceEmailWriter {
 			}
 
 			if (isEmpty) {
+				System.out.println("Sorting people alphabetically on IN Payments sheet...");
 				Set<String> names = rows.keySet();
 				List<String> sortedNames = SortUtils.sort(names, SortOrder.ALPHABETICAL_IGNORE_UMLAUTS);
 				int cur = HEAD_LINE_AMOUNT_IN_PAYMENTS + 1;
@@ -561,12 +565,12 @@ public class FinanceEmailWriter {
 						}
 					}
 				}
-				System.out.println("Sorting people alphabetically on IN Payments sheet...");
 			} else {
 				System.out.println("Not sorting people alphabetically on IN Payments sheet, " +
 					"as there is already some info there!");
 			}
 		}
+		*/
 
 		int amountOfPeopleZeroNights = 0;
 
