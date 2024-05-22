@@ -667,9 +667,13 @@ public class FinanceEmailWriter {
 				outContent = removeFromLineToLine(outContent, BEGIN_IF_POSITIVE, END_IF_POSITIVE);
 				outContent = removeLine(outContent, BEGIN_IF_NEGATIVE);
 				outContent = removeLine(outContent, END_IF_NEGATIVE);
-			} else {
+			} else if (person.getActualTransaction() > 0) {
 				outContent = removeLine(outContent, BEGIN_IF_POSITIVE);
 				outContent = removeLine(outContent, END_IF_POSITIVE);
+				outContent = removeFromLineToLine(outContent, BEGIN_IF_NEGATIVE, END_IF_NEGATIVE);
+			} else {
+				// for completely 0, remove both xD
+				outContent = removeFromLineToLine(outContent, BEGIN_IF_POSITIVE, END_IF_POSITIVE);
 				outContent = removeFromLineToLine(outContent, BEGIN_IF_NEGATIVE, END_IF_NEGATIVE);
 			}
 			outContent = StrUtils.replaceAll(outContent, NIGHTS, ""+person.getNights());
