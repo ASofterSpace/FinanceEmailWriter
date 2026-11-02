@@ -326,8 +326,7 @@ public class Person {
 	}
 
 	public boolean cancelledAfterDeadline() {
-		final String CANCELLED = "CANCELLED";
-		return CANCELLED.equals(arrivalDate) || CANCELLED.equals(leaveDate);
+		return FinanceEmailWriter.CANCELLED.equals(arrivalDate) || FinanceEmailWriter.CANCELLED.equals(leaveDate);
 	}
 
 	public Integer getActualTransaction() {
