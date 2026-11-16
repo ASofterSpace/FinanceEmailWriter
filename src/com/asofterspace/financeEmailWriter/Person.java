@@ -5,7 +5,6 @@
 package com.asofterspace.financeEmailWriter;
 
 import com.asofterspace.toolbox.accounting.Currency;
-import com.asofterspace.toolbox.accounting.FinanceUtils;
 import com.asofterspace.toolbox.utils.Language;
 import com.asofterspace.toolbox.utils.Pair;
 import com.asofterspace.toolbox.utils.Record;
@@ -216,13 +215,13 @@ public class Person {
 				}
 				return "(none)";
 			}
-			return FinanceUtils.formatMoney(getHadExpense(), Currency.E, FinanceEmailWriter.LANGUAGE);
+			return FinanceEmailWriter.formatMoney(getHadExpense(), Currency.E, FinanceEmailWriter.LANGUAGE);
 		}
 
 		String sep = "";
 
 		for (Pair<Integer, String> cost : expenses) {
-			result += sep + FinanceUtils.formatMoney(cost.getKey(), Currency.E, FinanceEmailWriter.LANGUAGE) + " ";
+			result += sep + FinanceEmailWriter.formatMoney(cost.getKey(), Currency.E, FinanceEmailWriter.LANGUAGE) + " ";
 			result += getForStr();
 			result += " " + cost.getValue();
 			sep = "\r\n";
@@ -232,11 +231,11 @@ public class Person {
 		if (expenses.size() > 1) {
 		if (FinanceEmailWriter.LANGUAGE == Language.DE) {
 				result += sep + "Also insgesamt: " +
-					FinanceUtils.formatMoney(getHadExpense(), Currency.E, FinanceEmailWriter.LANGUAGE) +
+					FinanceEmailWriter.formatMoney(getHadExpense(), Currency.E, FinanceEmailWriter.LANGUAGE) +
 					" an Ausgaben.";
 			} else {
 				result += sep + "So in total: " +
-					FinanceUtils.formatMoney(getHadExpense(), Currency.E, FinanceEmailWriter.LANGUAGE) +
+					FinanceEmailWriter.formatMoney(getHadExpense(), Currency.E, FinanceEmailWriter.LANGUAGE) +
 					" in expenses.";
 			}
 		}
@@ -269,14 +268,14 @@ public class Person {
 		String result = "";
 
 		if (transports.size() < 1) {
-			return FinanceUtils.formatMoney(getTransCosts(), Currency.E, FinanceEmailWriter.LANGUAGE) + " " +
+			return FinanceEmailWriter.formatMoney(getTransCosts(), Currency.E, FinanceEmailWriter.LANGUAGE) + " " +
 				getForStr() + " " + getTransInfo();
 		}
 
 		String sep = "";
 
 		for (Pair<Integer, String> cost : transports) {
-			result += sep + FinanceUtils.formatMoney(cost.getKey(), Currency.E, FinanceEmailWriter.LANGUAGE) + " " +
+			result += sep + FinanceEmailWriter.formatMoney(cost.getKey(), Currency.E, FinanceEmailWriter.LANGUAGE) + " " +
 				getForStr() + " " + cost.getValue();
 			sep = "\r\n";
 		}
@@ -285,11 +284,11 @@ public class Person {
 		if (transports.size() > 1) {
 			if (FinanceEmailWriter.LANGUAGE == Language.DE) {
 				result += sep + "Also insgesamt: " +
-					FinanceUtils.formatMoney(getTransCosts(), Currency.E, FinanceEmailWriter.LANGUAGE) +
+					FinanceEmailWriter.formatMoney(getTransCosts(), Currency.E, FinanceEmailWriter.LANGUAGE) +
 					" an Transportkosten.";
 			} else {
 				result += sep + "So in total: " +
-					FinanceUtils.formatMoney(getTransCosts(), Currency.E, FinanceEmailWriter.LANGUAGE) +
+					FinanceEmailWriter.formatMoney(getTransCosts(), Currency.E, FinanceEmailWriter.LANGUAGE) +
 					" in transport costs.";
 			}
 		}

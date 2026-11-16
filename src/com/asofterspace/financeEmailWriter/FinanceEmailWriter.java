@@ -63,8 +63,8 @@ public class FinanceEmailWriter {
 	private static final int HEAD_LINE_AMOUNT_IN_PAYMENTS = 9;
 
 	public final static String PROGRAM_TITLE = "FinanceEmailWriter";
-	public final static String VERSION_NUMBER = "0.0.1.9(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
-	public final static String VERSION_DATE = "6. June 2022 - 2. November 2026";
+	public final static String VERSION_NUMBER = "0.0.2.0(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
+	public final static String VERSION_DATE = "6. June 2022 - 16. November 2026";
 
 	public static Language LANGUAGE = Language.EN;
 
@@ -1049,10 +1049,10 @@ public class FinanceEmailWriter {
 		}
 	}
 
-	private static String formatMoney(Integer amount, Currency currency, Language lang) {
+	public static String formatMoney(Integer amount, Currency currency, Language lang) {
 		String result = FinanceUtils.formatMoney(amount, currency, lang);
 		if (result.startsWith("-")) {
-			result = "_ _" + result;
+			result = "\t_ _" + result;
 		}
 		return result;
 	}
